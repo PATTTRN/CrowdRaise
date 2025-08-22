@@ -51,6 +51,41 @@ body {
   50% { transform: translateY(-20px) rotate(180deg); }
 }
 
+/* Shimmer animation for form container */
+@keyframes shimmer {
+  0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+.animate-shimmer {
+  animation: shimmer 8s infinite;
+}
+
+/* Slide in animation for success message */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.5s ease;
+}
+
+/* Progress bar shimmer animation */
+@keyframes progressShimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.animate-progressShimmer {
+  animation: progressShimmer 2s infinite;
+}
+
+/* Duration utilities for Tailwind */
+.duration-2000 {
+  transition-duration: 2000ms;
+}
+
 /* Navigation */
 nav {
   position: fixed;
