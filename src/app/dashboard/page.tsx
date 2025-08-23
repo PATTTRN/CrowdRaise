@@ -48,6 +48,7 @@ export default function DashboardPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'campaigns' | 'donations'>('overview');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const particlesRef = useRef<HTMLDivElement>(null);
 
   // Sample data
@@ -102,20 +103,20 @@ export default function DashboardPage() {
     },
     {
       id: '2',
-      campaignId: '1',
-      campaignTitle: "Help Sarah Complete Her Medical School Journey",
+      campaignId: '2',
+      campaignTitle: "Community Library Project",
       donorName: "Michael Johnson",
       amount: 25000,
-      date: "5 hours ago"
+      date: "5 hours ago",
+      message: "Education is the key to success"
     },
     {
       id: '3',
-      campaignId: '2',
-      campaignTitle: "Community Library Project",
+      campaignId: '1',
+      campaignTitle: "Help Sarah Complete Her Medical School Journey",
       donorName: "Sarah Williams",
       amount: 10000,
-      date: "1 day ago",
-      message: "Education is the key to success!"
+      date: "1 day ago"
     },
     {
       id: '4',
@@ -123,15 +124,16 @@ export default function DashboardPage() {
       campaignTitle: "Local Artisan Support",
       donorName: "David Brown",
       amount: 50000,
-      date: "2 days ago"
+      date: "2 days ago",
+      message: "Supporting local businesses is important"
     }
   ];
 
-  // Create floating particles
   useEffect(() => {
+    // Create floating particles
     if (particlesRef.current) {
       const container = particlesRef.current;
-      const particleCount = 20;
+      const particleCount = 30;
       
       for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
@@ -143,46 +145,32 @@ export default function DashboardPage() {
         container.appendChild(particle);
       }
     }
-  }, []);
 
-  // Load data
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
+    // Simulate loading
+    const timer = setTimeout(() => {
       setCampaigns(sampleCampaigns);
       setRecentDonations(sampleDonations);
-      
-      // Calculate stats
-      const totalRaised = sampleCampaigns.reduce((sum, campaign) => sum + campaign.raised, 0);
-      const totalSupporters = sampleCampaigns.reduce((sum, campaign) => sum + campaign.supporters, 0);
-      const activeCampaigns = sampleCampaigns.filter(campaign => campaign.status === 'active').length;
-      const averageDonation = totalSupporters > 0 ? totalRaised / totalSupporters : 0;
-      const completionRate = sampleCampaigns.length > 0 ? (activeCampaigns / sampleCampaigns.length) * 100 : 0;
-
       setStats({
         totalCampaigns: sampleCampaigns.length,
-        activeCampaigns,
-        totalRaised,
-        totalSupporters,
-        averageDonation,
-        completionRate
+        activeCampaigns: sampleCampaigns.filter(c => c.status === 'active').length,
+        totalRaised: sampleCampaigns.reduce((sum, c) => sum + c.raised, 0),
+        totalSupporters: sampleCampaigns.reduce((sum, c) => sum + c.supporters, 0),
+        averageDonation: 25000,
+        completionRate: 85
       });
-      
       setIsLoading(false);
     }, 1000);
-  }, []);
 
-  const getProgressPercentage = (raised: number, goal: number) => {
-    return Math.min((raised / goal) * 100, 100);
-  };
+    return () => clearTimeout(timer);
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-500';
-      case 'completed': return 'bg-blue-500';
-      case 'pending': return 'bg-yellow-500';
-      case 'rejected': return 'bg-red-500';
-      default: return 'bg-gray-500';
+      case 'active': return 'text-green-400 bg-green-400/10';
+      case 'completed': return 'text-blue-400 bg-blue-400/10';
+      case 'pending': return 'text-yellow-400 bg-yellow-400/10';
+      case 'rejected': return 'text-red-400 bg-red-400/10';
+      default: return 'text-white/60 bg-white/5';
     }
   };
 
@@ -196,148 +184,148 @@ export default function DashboardPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return `₦${amount.toLocaleString()}`;
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading dashboard...</p>
+      <>
+        <div className="bg-particles" id="particles" ref={particlesRef}></div>
+        <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-white text-lg">Loading your dashboard...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
     <>
-      <div className="bg-particles" ref={particlesRef}></div>
-
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full px-8 py-4 bg-white/10 backdrop-blur-md border-b border-white/20 z-50 transition-all duration-300">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <Link href="/" className="text-3xl font-bold text-transparent bg-gradient-to-r from-red-400 to-cyan-400 bg-clip-text">
-            DonateFlow
-          </Link>
-          <div className="flex gap-4 items-center">
-            <Link href="/explore" className="text-white/90 no-underline font-medium px-6 py-2 rounded-full transition-all duration-300 border border-white/30 backdrop-blur-md hover:bg-white/10 hover:-translate-y-0.5">
-              Explore
-            </Link>
-            <Link href="/create_campaign" className="text-white/90 no-underline font-medium px-6 py-2 rounded-full transition-all duration-300 border border-white/30 backdrop-blur-md hover:bg-white/10 hover:-translate-y-0.5">
-              Create Campaign
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <div className="bg-particles" id="particles" ref={particlesRef}></div>
 
       {/* Main Content */}
-      <div className="pt-32 pb-16 px-8 relative z-10">
+      <div className="pt-20 pb-8 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-7xl mx-auto">
           
-          {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">Dashboard</h1>
-            <p className="text-white/70">Track your campaigns and monitor your fundraising progress</p>
+          {/* Header */}
+          <div className="mb-8 sm:mb-12">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4">
+              Dashboard
+            </h1>
+            <p className="text-white/80 text-base sm:text-lg">
+              Welcome back! Here&apos;s an overview of your fundraising activities.
+            </p>
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex gap-2 mb-8">
-            {[
-              { id: 'overview', label: 'Overview', icon: 'fas fa-chart-line' },
-              { id: 'campaigns', label: 'My Campaigns', icon: 'fas fa-bullhorn' },
-              { id: 'donations', label: 'Donations', icon: 'fas fa-heart' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setSelectedTab(tab.id as any)}
-                className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${
-                  selectedTab === tab.id
-                    ? 'bg-cyan-400 text-white shadow-lg shadow-cyan-400/30'
-                    : 'bg-white/10 text-white/70 hover:bg-white/20'
-                }`}
-              >
-                <i className={tab.icon}></i>
-                {tab.label}
-              </button>
-            ))}
+          <div className="mb-8">
+            <div className="flex flex-wrap gap-2 sm:gap-4">
+              {[
+                { id: 'overview', label: 'Overview', icon: 'fas fa-chart-line' },
+                { id: 'campaigns', label: 'Campaigns', icon: 'fas fa-bullhorn' },
+                { id: 'donations', label: 'Donations', icon: 'fas fa-heart' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedTab(tab.id as "overview" | "campaigns" | "donations")}
+                  className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base font-medium transition-all duration-300 ${
+                    selectedTab === tab.id
+                      ? 'bg-gradient-to-r from-red-400 to-cyan-400 text-white shadow-lg'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                  }`}
+                >
+                  <i className={tab.icon}></i>
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Overview Tab */}
           {selectedTab === 'overview' && (
-            <div className="space-y-8">
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6 text-center">
-                  <div className="text-3xl font-bold text-cyan-400 mb-2">{stats.totalCampaigns}</div>
-                  <div className="text-white/70 text-sm">Total Campaigns</div>
-                </div>
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6 text-center">
-                  <div className="text-3xl font-bold text-green-400 mb-2">{stats.activeCampaigns}</div>
-                  <div className="text-white/70 text-sm">Active Campaigns</div>
-                </div>
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6 text-center">
-                  <div className="text-3xl font-bold text-yellow-400 mb-2">{formatCurrency(stats.totalRaised)}</div>
-                  <div className="text-white/70 text-sm">Total Raised</div>
-                </div>
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6 text-center">
-                  <div className="text-3xl font-bold text-purple-400 mb-2">{stats.totalSupporters}</div>
-                  <div className="text-white/70 text-sm">Total Supporters</div>
-                </div>
-              </div>
-
-              {/* Additional Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6">
-                  <h3 className="text-xl font-semibold text-white mb-4">Performance Metrics</h3>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70">Average Donation</span>
-                      <span className="text-white font-semibold">{formatCurrency(Math.round(stats.averageDonation))}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/70">Completion Rate</span>
-                      <span className="text-white font-semibold">{stats.completionRate.toFixed(1)}%</span>
+            <div className="space-y-6 sm:space-y-8">
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {[
+                  { label: 'Total Campaigns', value: stats.totalCampaigns, icon: 'fas fa-bullhorn', color: 'from-blue-400 to-cyan-400' },
+                  { label: 'Active Campaigns', value: stats.activeCampaigns, icon: 'fas fa-play-circle', color: 'from-green-400 to-emerald-400' },
+                  { label: 'Total Raised', value: `₦${stats.totalRaised.toLocaleString()}`, icon: 'fas fa-money-bill-wave', color: 'from-yellow-400 to-orange-400' },
+                  { label: 'Total Supporters', value: stats.totalSupporters, icon: 'fas fa-users', color: 'from-purple-400 to-pink-400' },
+                  { label: 'Avg. Donation', value: `₦${stats.averageDonation.toLocaleString()}`, icon: 'fas fa-chart-bar', color: 'from-indigo-400 to-blue-400' },
+                  { label: 'Completion Rate', value: `${stats.completionRate}%`, icon: 'fas fa-percentage', color: 'from-red-400 to-pink-400' }
+                ].map((stat, index) => (
+                  <div key={index} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
+                        <i className={`${stat.icon} text-white text-lg`}></i>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl sm:text-3xl font-bold text-white">{stat.value}</div>
+                        <div className="text-white/60 text-sm">{stat.label}</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6">
-                  <h3 className="text-xl font-semibold text-white mb-4">Quick Actions</h3>
-                  <div className="space-y-3">
-                    <Link href="/create_campaign" className="block w-full px-4 py-3 bg-gradient-to-r from-red-400 to-cyan-400 text-white text-center rounded-xl font-medium transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-red-400/30">
-                      <i className="fas fa-plus mr-2"></i>
-                      Create New Campaign
-                    </Link>
-                    <button className="w-full px-4 py-3 bg-white/10 text-white text-center rounded-xl font-medium border border-white/30 transition-all duration-300 hover:bg-white/20">
-                      <i className="fas fa-download mr-2"></i>
-                      Export Report
-                    </button>
-                  </div>
-                </div>
+                ))}
               </div>
 
               {/* Recent Activity */}
-              <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6">
-                <h3 className="text-xl font-semibold text-white mb-4">Recent Activity</h3>
-                <div className="space-y-3">
-                  {recentDonations.slice(0, 5).map((donation) => (
-                    <div key={donation.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-red-400 to-cyan-400 flex items-center justify-center text-white font-semibold text-sm">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                {/* Recent Campaigns */}
+                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-3">
+                    <i className="fas fa-bullhorn text-cyan-400"></i>
+                    Recent Campaigns
+                  </h3>
+                  <div className="space-y-3 sm:space-y-4">
+                    {campaigns.slice(0, 3).map((campaign) => (
+                      <div key={campaign.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
+                        <img src={campaign.image} alt={campaign.title} className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-white font-medium text-sm sm:text-base truncate">{campaign.title}</h4>
+                          <div className="flex items-center gap-2 text-xs sm:text-sm text-white/60">
+                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(campaign.status)}`}>
+                              {getStatusText(campaign.status)}
+                            </span>
+                            <span>₦{campaign.raised.toLocaleString()} raised</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 sm:mt-6 text-center">
+                    <Link href="/create_campaign" className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-400 to-cyan-400 text-white rounded-full text-sm sm:text-base font-medium hover:-translate-y-1 transition-all duration-300">
+                      <i className="fas fa-plus"></i>
+                      Create New Campaign
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Recent Donations */}
+                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-3">
+                    <i className="fas fa-heart text-cyan-400"></i>
+                    Recent Donations
+                  </h3>
+                  <div className="space-y-3 sm:space-y-4">
+                    {recentDonations.slice(0, 4).map((donation) => (
+                      <div key={donation.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-red-400 to-cyan-400 flex items-center justify-center text-white font-semibold text-sm sm:text-base">
                           {donation.donorName.charAt(0)}
                         </div>
-                        <div>
-                          <div className="text-white font-medium">{donation.donorName}</div>
-                          <div className="text-white/60 text-sm">{donation.campaignTitle}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white font-medium text-sm sm:text-base">{donation.donorName}</div>
+                          <div className="text-white/60 text-xs sm:text-sm truncate">{donation.campaignTitle}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-cyan-400 font-semibold text-sm sm:text-base">₦{donation.amount.toLocaleString()}</div>
+                          <div className="text-white/50 text-xs">{donation.date}</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-cyan-400 font-semibold">{formatCurrency(donation.amount)}</div>
-                        <div className="text-white/60 text-sm">{donation.date}</div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -345,76 +333,49 @@ export default function DashboardPage() {
 
           {/* Campaigns Tab */}
           {selectedTab === 'campaigns' && (
-            <div className="space-y-6">
+            <div className="space-y-6 sm:space-y-8">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-white">My Campaigns</h2>
-                <Link href="/create_campaign" className="px-6 py-3 bg-gradient-to-r from-red-400 to-cyan-400 text-white rounded-xl font-medium transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-red-400/30">
-                  <i className="fas fa-plus mr-2"></i>
-                  New Campaign
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">Your Campaigns</h2>
+                <Link href="/create_campaign" className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-400 to-cyan-400 text-white rounded-full text-sm sm:text-base font-medium hover:-translate-y-1 transition-all duration-300">
+                  <i className="fas fa-plus"></i>
+                  <span className="hidden sm:inline">Create Campaign</span>
                 </Link>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                 {campaigns.map((campaign) => (
-                  <div key={campaign.id} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden">
-                    <div className="relative h-48">
-                      <img
-                        src={campaign.image}
-                        alt={campaign.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-4 right-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium text-white ${getStatusColor(campaign.status)}`}>
+                  <div key={campaign.id} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
+                    <img src={campaign.image} alt={campaign.title} className="w-full h-32 sm:h-40 object-cover" />
+                    <div className="p-4 sm:p-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(campaign.status)}`}>
                           {getStatusText(campaign.status)}
                         </span>
+                        <span className="text-white/60 text-xs">{campaign.daysLeft} days left</span>
                       </div>
-                    </div>
-                    
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold text-white mb-3">{campaign.title}</h3>
-                      <div className="flex items-center gap-2 mb-4 text-sm text-white/60">
-                        <i className="fas fa-tag text-cyan-400"></i>
-                        <span>{campaign.category}</span>
-                      </div>
-
-                      {/* Progress */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-white/70">Progress</span>
-                          <span className="text-cyan-400 font-semibold">
-                            {getProgressPercentage(campaign.raised, campaign.goal).toFixed(1)}%
-                          </span>
+                      <h3 className="text-white font-semibold text-base sm:text-lg mb-2 line-clamp-2">{campaign.title}</h3>
+                      <p className="text-white/60 text-sm mb-4">{campaign.category}</p>
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Goal:</span>
+                          <span className="text-white font-medium">₦{campaign.goal.toLocaleString()}</span>
                         </div>
-                        <div className="bg-white/10 rounded-full h-2 overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-red-400 to-cyan-400 rounded-full transition-all duration-1000"
-                            style={{ width: `${getProgressPercentage(campaign.raised, campaign.goal)}%` }}
-                          ></div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Raised:</span>
+                          <span className="text-cyan-400 font-semibold">₦{campaign.raised.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Supporters:</span>
+                          <span className="text-white font-medium">{campaign.supporters}</span>
                         </div>
                       </div>
 
-                      {/* Stats */}
-                      <div className="grid grid-cols-3 gap-4 text-center mb-4">
-                        <div>
-                          <div className="text-lg font-bold text-cyan-400">{formatCurrency(campaign.raised)}</div>
-                          <div className="text-xs text-white/60">Raised</div>
-                        </div>
-                        <div>
-                          <div className="text-lg font-bold text-white">{campaign.supporters}</div>
-                          <div className="text-xs text-white/60">Supporters</div>
-                        </div>
-                        <div>
-                          <div className="text-lg font-bold text-white">{campaign.daysLeft}</div>
-                          <div className="text-xs text-white/60">Days Left</div>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-3">
-                        <Link href={`/campaign/${campaign.id}`} className="flex-1 px-4 py-2 bg-white/10 text-white text-center rounded-xl font-medium border border-white/30 transition-all duration-300 hover:bg-white/20">
+                      <div className="mt-4 sm:mt-6 flex gap-2">
+                        <Link href={`/campaign/${campaign.id}`} className="flex-1 px-4 py-2 bg-white/10 text-white text-center rounded-lg text-sm hover:bg-white/20 transition-colors">
                           View
                         </Link>
-                        <button className="flex-1 px-4 py-2 bg-white/10 text-white text-center rounded-xl font-medium border border-white/30 transition-all duration-300 hover:bg-white/20">
+                        <button className="px-4 py-2 bg-cyan-400/20 text-cyan-400 rounded-lg text-sm hover:bg-cyan-400/30 transition-colors">
                           Edit
                         </button>
                       </div>
@@ -427,37 +388,45 @@ export default function DashboardPage() {
 
           {/* Donations Tab */}
           {selectedTab === 'donations' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-white">Recent Donations</h2>
+            <div className="space-y-6 sm:space-y-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white">Recent Donations</h2>
               
-              <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden">
+              <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-white/5">
                       <tr>
-                        <th className="px-6 py-4 text-left text-white/70 font-medium">Donor</th>
-                        <th className="px-6 py-4 text-left text-white/70 font-medium">Campaign</th>
-                        <th className="px-6 py-4 text-left text-white/70 font-medium">Amount</th>
-                        <th className="px-6 py-4 text-left text-white/70 font-medium">Date</th>
-                        <th className="px-6 py-4 text-left text-white/70 font-medium">Message</th>
+                        <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Donor</th>
+                        <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Campaign</th>
+                        <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Amount</th>
+                        <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Date</th>
+                        <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Message</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10">
                       {recentDonations.map((donation) => (
-                        <tr key={donation.id} className="hover:bg-white/5 transition-colors duration-200">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-red-400 to-cyan-400 flex items-center justify-center text-white font-semibold text-sm">
+                        <tr key={donation.id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-red-400 to-cyan-400 flex items-center justify-center text-white font-semibold text-xs sm:text-sm">
                                 {donation.donorName.charAt(0)}
                               </div>
-                              <span className="text-white font-medium">{donation.donorName}</span>
+                              <div className="ml-3">
+                                <div className="text-sm sm:text-base font-medium text-white">{donation.donorName}</div>
+                              </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-white/80">{donation.campaignTitle}</td>
-                          <td className="px-6 py-4 text-cyan-400 font-semibold">{formatCurrency(donation.amount)}</td>
-                          <td className="px-6 py-4 text-white/60">{donation.date}</td>
-                          <td className="px-6 py-4 text-white/60 max-w-xs truncate">
-                            {donation.message || 'No message'}
+                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                            <div className="text-sm sm:text-base text-white/80 max-w-xs truncate">{donation.campaignTitle}</div>
+                          </td>
+                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                            <div className="text-sm sm:text-base font-semibold text-cyan-400">₦{donation.amount.toLocaleString()}</div>
+                          </td>
+                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                            <div className="text-sm text-white/60">{donation.date}</div>
+                          </td>
+                          <td className="px-4 sm:px-6 py-3 sm:py-4">
+                            <div className="text-sm text-white/70 max-w-xs truncate">{donation.message || '-'}</div>
                           </td>
                         </tr>
                       ))}

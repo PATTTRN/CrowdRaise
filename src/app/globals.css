@@ -91,7 +91,7 @@ nav {
   position: fixed;
   top: 0;
   width: 100%;
-  padding: 1rem 2rem;
+  padding: 0.75rem 1rem;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
@@ -105,10 +105,11 @@ nav {
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 1rem;
 }
 
 .logo {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: white;
   text-decoration: none;
@@ -119,7 +120,7 @@ nav {
 }
 
 .nav-links {
-  display: flex;
+  display: none;
   gap: 2rem;
   list-style: none;
 }
@@ -152,6 +153,66 @@ nav {
   width: 100%;
 }
 
+/* Mobile menu button */
+.mobile-menu-btn {
+  display: block;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.mobile-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Mobile menu */
+.mobile-menu {
+  position: fixed;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+  z-index: 999;
+}
+
+.mobile-menu.open {
+  transform: translateY(0);
+}
+
+.mobile-menu ul {
+  list-style: none;
+  padding: 1rem;
+  margin: 0;
+}
+
+.mobile-menu li {
+  margin: 1rem 0;
+}
+
+.mobile-menu a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  display: block;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.mobile-menu a:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #4ecdc4;
+}
+
 /* Hero Section */
 .hero {
   min-height: 100vh;
@@ -159,20 +220,21 @@ nav {
   align-items: center;
   position: relative;
   z-index: 2;
-  padding: 0 2rem;
+  padding: 0 1rem;
 }
 
 .hero-container {
   max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
+  grid-template-columns: 1fr;
+  gap: 2rem;
   align-items: center;
+  text-align: center;
 }
 
 .hero-content h1 {
-  font-size: 3.5rem;
+  font-size: 2.5rem;
   font-weight: 800;
   color: white;
   margin-bottom: 1.5rem;
@@ -187,27 +249,32 @@ nav {
 }
 
 .hero-content p {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
   line-height: 1.6;
 }
 
 .cta-buttons {
   display: flex;
-  gap: 1.5rem;
-  margin-bottom: 3rem;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  align-items: center;
 }
 
 .btn-primary, .btn-secondary {
-  padding: 1rem 2rem;
+  padding: 0.875rem 1.75rem;
   border-radius: 50px;
   text-decoration: none;
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 1rem;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  width: 100%;
+  max-width: 280px;
+  text-align: center;
 }
 
 .btn-primary {
@@ -235,7 +302,8 @@ nav {
 
 .hero-stats {
   display: flex;
-  gap: 3rem;
+  flex-direction: column;
+  gap: 1.5rem;
   margin-top: 2rem;
 }
 
@@ -244,7 +312,7 @@ nav {
 }
 
 .stat-number {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #4ecdc4;
   display: block;
@@ -252,24 +320,25 @@ nav {
 
 .stat-label {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .hero-visual {
   display: flex;
   justify-content: center;
   align-items: center;
+  order: -1;
 }
 
 .dashboard-mockup {
   position: relative;
   width: 100%;
-  max-width: 500px;
+  max-width: 400px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 2rem;
+  padding: 1.5rem;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: float 6s ease-in-out infinite;
 }
@@ -278,14 +347,14 @@ nav {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .mockup-avatar {
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
 }
@@ -293,17 +362,18 @@ nav {
 .mockup-info h3 {
   color: white;
   margin-bottom: 0.3rem;
+  font-size: 1rem;
 }
 
 .mockup-info p {
   color: rgba(255, 255, 255, 0.6);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .progress-bar {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  height: 10px;
+  height: 8px;
   margin: 1rem 0;
   overflow: hidden;
 }
@@ -322,7 +392,7 @@ nav {
 }
 
 .donation-amount {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #4ecdc4;
   text-align: center;
@@ -331,7 +401,7 @@ nav {
 
 /* Features Section */
 .features {
-  padding: 6rem 2rem;
+  padding: 4rem 1rem;
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
 }
@@ -343,16 +413,16 @@ nav {
 }
 
 .features h2 {
-  font-size: 3rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: white;
   margin-bottom: 1rem;
 }
 
 .features-subtitle {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 4rem;
+  margin-bottom: 3rem;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
@@ -360,15 +430,15 @@ nav {
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-top: 3rem;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-top: 2rem;
 }
 
 .feature-card {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 2.5rem;
+  padding: 2rem;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   text-align: center;
@@ -378,7 +448,7 @@ nav {
 }
 
 .feature-card:hover {
-  transform: translateY(-10px);
+  transform: translateY(-5px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
@@ -402,7 +472,7 @@ nav {
 }
 
 .feature-icon {
-  font-size: 3rem;
+  font-size: 2.5rem;
   background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
   background-clip: text;
   -webkit-background-clip: text;
@@ -412,7 +482,7 @@ nav {
 }
 
 .feature-card h3 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   color: white;
   margin-bottom: 1rem;
   font-weight: 600;
@@ -425,7 +495,7 @@ nav {
 
 /* CTA Section */
 .cta-section {
-  padding: 6rem 2rem;
+  padding: 4rem 1rem;
   text-align: center;
 }
 
@@ -435,28 +505,28 @@ nav {
 }
 
 .cta-section h2 {
-  font-size: 3rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: white;
   margin-bottom: 1.5rem;
 }
 
 .cta-section p {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
   line-height: 1.6;
 }
 
 .email-signup {
   display: flex;
+  flex-direction: column;
   gap: 1rem;
   max-width: 500px;
   margin: 0 auto 2rem auto;
 }
 
 .email-input {
-  flex: 1;
   padding: 1rem 1.5rem;
   border-radius: 50px;
   border: none;
@@ -477,37 +547,163 @@ nav {
   box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.2);
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+/* Tablet Responsive Design */
+@media (min-width: 768px) {
+  nav {
+    padding: 1rem 2rem;
+  }
+  
+  .nav-container {
+    padding: 0 2rem;
+  }
+  
+  .logo {
+    font-size: 1.8rem;
+  }
+  
   .nav-links {
-      display: none;
+    display: flex;
   }
-
+  
+  .mobile-menu-btn {
+    display: none;
+  }
+  
+  .hero {
+    padding: 0 2rem;
+  }
+  
   .hero-container {
-      grid-template-columns: 1fr;
-      text-align: center;
-      gap: 2rem;
+    grid-template-columns: 1fr 1fr;
+    text-align: left;
+    gap: 4rem;
   }
-
+  
   .hero-content h1 {
-      font-size: 2.5rem;
+    font-size: 3rem;
   }
-
-  .hero-stats {
-      justify-content: center;
+  
+  .hero-content p {
+    font-size: 1.2rem;
   }
-
+  
   .cta-buttons {
-      flex-direction: column;
-      align-items: center;
+    flex-direction: row;
+    justify-content: flex-start;
   }
-
+  
+  .btn-primary, .btn-secondary {
+    width: auto;
+    max-width: none;
+  }
+  
+  .hero-stats {
+    flex-direction: row;
+    gap: 3rem;
+    justify-content: flex-start;
+  }
+  
+  .hero-visual {
+    order: 0;
+  }
+  
+  .dashboard-mockup {
+    max-width: 500px;
+    padding: 2rem;
+  }
+  
+  .mockup-avatar {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .mockup-info h3 {
+    font-size: 1.25rem;
+  }
+  
+  .donation-amount {
+    font-size: 2rem;
+  }
+  
+  .features {
+    padding: 6rem 2rem;
+  }
+  
+  .features h2 {
+    font-size: 3rem;
+  }
+  
+  .features-subtitle {
+    font-size: 1.2rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+  }
+  
+  .feature-card {
+    padding: 2.5rem;
+  }
+  
+  .feature-icon {
+    font-size: 3rem;
+  }
+  
+  .feature-card h3 {
+    font-size: 1.5rem;
+  }
+  
+  .cta-section {
+    padding: 6rem 2rem;
+  }
+  
+  .cta-section h2 {
+    font-size: 3rem;
+  }
+  
+  .cta-section p {
+    font-size: 1.3rem;
+  }
+  
   .email-signup {
-      flex-direction: column;
+    flex-direction: row;
   }
+}
 
-  .features h2, .cta-section h2 {
-      font-size: 2.2rem;
+/* Desktop Responsive Design */
+@media (min-width: 1024px) {
+  .hero-content h1 {
+    font-size: 3.5rem;
+  }
+  
+  .hero-content p {
+    font-size: 1.3rem;
+  }
+  
+  .hero-stats {
+    gap: 4rem;
+  }
+  
+  .stat-number {
+    font-size: 2rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Large Desktop */
+@media (min-width: 1280px) {
+  .hero-container {
+    gap: 6rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
   }
 }
 
@@ -519,4 +715,50 @@ nav {
 
 .pulse {
   animation: pulse 2s infinite;
+}
+
+/* Mobile-specific utilities */
+.mobile-only {
+  display: block;
+}
+
+.desktop-only {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none;
+  }
+  
+  .desktop-only {
+    display: block;
+  }
+}
+
+/* Touch-friendly button sizes */
+@media (max-width: 767px) {
+  button, .btn-primary, .btn-secondary {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  input, textarea, select {
+    min-height: 44px;
+  }
+}
+
+/* Safe area for mobile devices */
+@supports (padding: max(0px)) {
+  .hero,
+  .features,
+  .cta-section {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  
+  nav {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
 }

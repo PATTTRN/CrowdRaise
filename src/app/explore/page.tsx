@@ -16,6 +16,7 @@ interface Campaign {
   image: string;
   description: string;
   status: 'active' | 'completed' | 'pending';
+  createdAt?: string;
 }
 
 export default function ExplorePage() {
@@ -25,6 +26,7 @@ export default function ExplorePage() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'ending' | 'goal'>('newest');
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const particlesRef = useRef<HTMLDivElement>(null);
 
   // Sample campaign data
@@ -101,16 +103,16 @@ export default function ExplorePage() {
     },
     {
       id: '6',
-      title: "Clean Water Project for Rural Village",
-      category: "Charity & Nonprofit",
+      title: "Clean Water Initiative for Rural Villages",
+      category: "Community & Social",
       creator: "Water for Life Foundation",
       location: "Kaduna, Nigeria",
-      goal: 1800000,
-      raised: 1450000,
-      supporters: 203,
+      goal: 3000000,
+      raised: 2100000,
+      supporters: 189,
       daysLeft: 22,
       image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      description: "Provide clean drinking water to 500 families in rural communities.",
+      description: "Providing clean drinking water to 10 rural villages through sustainable water systems.",
       status: 'active'
     }
   ];
@@ -120,16 +122,17 @@ export default function ExplorePage() {
     "Medical & Healthcare",
     "Education",
     "Emergency & Crisis",
+    "Business & Startup",
     "Community & Social",
-    "Charity & Nonprofit",
-    "Business & Startup"
+    "Animal Welfare",
+    "Arts & Culture"
   ];
 
-  // Create floating particles
   useEffect(() => {
+    // Create floating particles
     if (particlesRef.current) {
       const container = particlesRef.current;
-      const particleCount = 25;
+      const particleCount = 30;
       
       for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
@@ -141,19 +144,17 @@ export default function ExplorePage() {
         container.appendChild(particle);
       }
     }
-  }, []);
 
-  // Load campaigns
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
+    // Simulate loading
+    const timer = setTimeout(() => {
       setCampaigns(sampleCampaigns);
       setFilteredCampaigns(sampleCampaigns);
       setIsLoading(false);
     }, 1000);
+
+    return () => clearTimeout(timer);
   }, []);
 
-  // Filter and sort campaigns
   useEffect(() => {
     let filtered = campaigns;
 
@@ -162,7 +163,8 @@ export default function ExplorePage() {
       filtered = filtered.filter(campaign =>
         campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         campaign.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        campaign.creator.toLowerCase().includes(searchTerm.toLowerCase())
+        campaign.creator.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        campaign.category.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -174,7 +176,7 @@ export default function ExplorePage() {
     // Sort campaigns
     switch (sortBy) {
       case 'newest':
-        filtered = [...filtered].sort((a, b) => b.id.localeCompare(a.id));
+        filtered = [...filtered].sort((a, b) => new Date(b.createdAt || '2024-01-01').getTime() - new Date(a.createdAt || '2024-01-01').getTime());
         break;
       case 'popular':
         filtered = [...filtered].sort((a, b) => b.supporters - a.supporters);
@@ -194,230 +196,210 @@ export default function ExplorePage() {
     return Math.min((raised / goal) * 100, 100);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-500';
-      case 'completed': return 'bg-blue-500';
-      case 'pending': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active': return 'Active';
-      case 'completed': return 'Completed';
-      case 'pending': return 'Pending';
-      default: return 'Unknown';
-    }
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading campaigns...</p>
+      <>
+        <div className="bg-particles" id="particles" ref={particlesRef}></div>
+        <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-white text-lg">Discovering amazing campaigns...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
     <>
-      <div className="bg-particles" ref={particlesRef}></div>
-
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full px-8 py-4 bg-white/10 backdrop-blur-md border-b border-white/20 z-50 transition-all duration-300">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <Link href="/" className="text-3xl font-bold text-transparent bg-gradient-to-r from-red-400 to-cyan-400 bg-clip-text">
-            DonateFlow
-          </Link>
-          <div className="flex gap-4 items-center">
-            <Link href="/create_campaign" className="text-white/90 no-underline font-medium px-6 py-2 rounded-full transition-all duration-300 border border-white/30 backdrop-blur-md hover:bg-white/10 hover:-translate-y-0.5">
-              Create Campaign
-            </Link>
-            <Link href="/dashboard" className="text-white/90 no-underline font-medium px-6 py-2 rounded-full transition-all duration-300 border border-white/30 backdrop-blur-md hover:bg-white/10 hover:-translate-y-0.5">
-              Dashboard
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <div className="bg-particles" id="particles" ref={particlesRef}></div>
 
       {/* Main Content */}
-      <div className="pt-32 pb-16 px-8 relative z-10">
+      <div className="pt-20 pb-8 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-7xl mx-auto">
           
-          {/* Page Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-5xl font-extrabold text-white mb-4 leading-tight">
-              Explore <span className="text-transparent bg-gradient-to-r from-red-400 to-cyan-400 bg-clip-text">Campaigns</span>
+          {/* Header */}
+          <div className="text-center mb-8 sm:mb-12">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4">
+              Discover Amazing Campaigns
             </h1>
-            <p className="text-xl text-white/80 leading-relaxed max-w-3xl mx-auto">
-              Discover amazing causes and support campaigns that matter to you. Every donation makes a difference.
+            <p className="text-white/80 text-base sm:text-lg max-w-2xl mx-auto">
+              Explore and support meaningful causes that are making a difference in communities across Nigeria.
             </p>
           </div>
 
           {/* Search and Filters */}
-          <div className="bg-white/10 rounded-3xl backdrop-blur-xl border border-white/20 p-8 mb-12 shadow-2xl">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
-              {/* Search */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search campaigns..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-6 py-4 pl-12 rounded-xl border-2 border-white/20 bg-white/10 text-white text-base backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20 placeholder:text-white/60"
-                />
-                <i className="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60"></i>
-              </div>
-
-              {/* Category Filter */}
-              <div>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-6 py-4 rounded-xl border-2 border-white/20 bg-white/10 text-white text-base backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20"
-                >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Sort */}
-              <div>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="w-full px-6 py-4 rounded-xl border-2 border-white/20 bg-white/10 text-white text-base backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="popular">Most Popular</option>
-                  <option value="ending">Ending Soon</option>
-                  <option value="goal">Highest Goal</option>
-                </select>
-              </div>
+          <div className="mb-8 sm:mb-12 space-y-4 sm:space-y-6">
+            {/* Search Bar */}
+            <div className="relative max-w-2xl mx-auto">
+              <input
+                type="text"
+                placeholder="Search campaigns, creators, or categories..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 sm:px-6 py-3 sm:py-4 pl-12 sm:pl-14 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder:text-white/50 backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20"
+              />
+              <i className="fas fa-search absolute left-4 sm:left-6 top-1/2 transform -translate-y-1/2 text-white/50 text-lg sm:text-xl"></i>
             </div>
 
-            {/* Results Count */}
-            <div className="mt-6 text-center">
-              <p className="text-white/70">
-                Showing <span className="text-cyan-400 font-semibold">{filteredCampaigns.length}</span> of{' '}
-                <span className="text-cyan-400 font-semibold">{campaigns.length}</span> campaigns
-              </p>
+            {/* Filters Row */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
+              {/* Category Filter */}
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-white/10 border-2 border-white/20 rounded-full text-white text-sm sm:text-base backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20"
+              >
+                {categories.map((category) => (
+                  <option key={category} value={category} className="bg-gray-800 text-white">
+                    {category}
+                  </option>
+                ))}
+              </select>
+
+              {/* Sort Options */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as "newest" | "popular" | "ending" | "goal")}
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-white/10 border-2 border-white/20 rounded-full text-white text-sm sm:text-base backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20"
+              >
+                <option value="newest" className="bg-gray-800 text-white">Newest First</option>
+                <option value="popular" className="bg-gray-800 text-white">Most Popular</option>
+                <option value="ending" className="bg-gray-800 text-white">Ending Soon</option>
+                <option value="goal" className="bg-gray-800 text-white">Highest Goal</option>
+              </select>
             </div>
           </div>
 
+          {/* Results Count */}
+          <div className="mb-6 sm:mb-8">
+            <p className="text-white/70 text-sm sm:text-base text-center">
+              Showing {filteredCampaigns.length} of {campaigns.length} campaigns
+            </p>
+          </div>
+
           {/* Campaigns Grid */}
-          {filteredCampaigns.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-2xl font-semibold text-white mb-2">No campaigns found</h3>
-              <p className="text-white/70">Try adjusting your search or filters</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredCampaigns.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredCampaigns.map((campaign) => (
-                <Link
-                  key={campaign.id}
-                  href={`/campaign/${campaign.id}`}
-                  className="group block"
-                >
-                  <div className="bg-white/10 rounded-3xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-2xl transition-all duration-300 hover:shadow-cyan-400/20 hover:-translate-y-2 group-hover:border-cyan-400/50">
-                    
-                    {/* Campaign Image */}
-                    <div className="relative h-48 overflow-hidden">
-                      <img
-                        src={campaign.image}
-                        alt={campaign.title}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                      />
-                      <div className="absolute top-4 right-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium text-white ${getStatusColor(campaign.status)}`}>
-                          {getStatusText(campaign.status)}
+                <div key={campaign.id} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+                  <img src={campaign.image} alt={campaign.title} className="w-full h-48 sm:h-56 object-cover" />
+                  
+                  <div className="p-4 sm:p-6">
+                    {/* Category Badge */}
+                    <div className="inline-block bg-gradient-to-r from-red-400 to-cyan-400 text-white px-3 py-1 rounded-full text-xs font-medium mb-3">
+                      {campaign.category}
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="text-white font-bold text-lg sm:text-xl mb-2 line-clamp-2 leading-tight">
+                      {campaign.title}
+                    </h3>
+
+                    {/* Description */}
+                    <p className="text-white/70 text-sm sm:text-base mb-4 line-clamp-2 leading-relaxed">
+                      {campaign.description}
+                    </p>
+
+                    {/* Creator and Location */}
+                    <div className="flex items-center gap-2 text-white/60 text-xs sm:text-sm mb-4">
+                      <i className="fas fa-user text-cyan-400"></i>
+                      <span>{campaign.creator}</span>
+                      <span className="mx-2">•</span>
+                      <i className="fas fa-map-marker-alt text-cyan-400"></i>
+                      <span>{campaign.location}</span>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mb-4">
+                      <div className="flex justify-between text-xs sm:text-sm mb-2">
+                        <span className="text-white/70">Progress</span>
+                        <span className="text-cyan-400 font-semibold">
+                          {getProgressPercentage(campaign.raised, campaign.goal).toFixed(1)}%
                         </span>
                       </div>
-                      <div className="absolute top-4 left-4">
-                        <span className="px-3 py-1 rounded-full text-xs font-medium text-white bg-black/50 backdrop-blur-md">
-                          {campaign.category}
-                        </span>
+                      <div className="bg-white/10 rounded-full h-2 overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-red-400 to-cyan-400 rounded-full transition-all duration-1000"
+                          style={{ width: `${getProgressPercentage(campaign.raised, campaign.goal)}%` }}
+                        ></div>
                       </div>
                     </div>
 
-                    {/* Campaign Content */}
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold text-white mb-3 line-clamp-2 group-hover:text-cyan-400 transition-colors duration-300">
-                        {campaign.title}
-                      </h3>
-                      
-                      <p className="text-white/70 text-sm mb-4 line-clamp-2">
-                        {campaign.description}
-                      </p>
-
-                      {/* Creator Info */}
-                      <div className="flex items-center gap-2 mb-4 text-sm text-white/60">
-                        <i className="fas fa-user text-cyan-400"></i>
-                        <span>{campaign.creator}</span>
-                        <span className="mx-2">•</span>
-                        <i className="fas fa-map-marker-alt text-cyan-400"></i>
-                        <span>{campaign.location}</span>
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-3 mb-4 text-center">
+                      <div>
+                        <div className="text-lg sm:text-xl font-bold text-cyan-400">₦{campaign.raised.toLocaleString()}</div>
+                        <div className="text-xs text-white/60">Raised</div>
                       </div>
-
-                      {/* Progress Bar */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-white/70">Progress</span>
-                          <span className="text-cyan-400 font-semibold">
-                            {getProgressPercentage(campaign.raised, campaign.goal).toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className="bg-white/10 rounded-full h-2 overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-red-400 to-cyan-400 rounded-full transition-all duration-1000"
-                            style={{ width: `${getProgressPercentage(campaign.raised, campaign.goal)}%` }}
-                          ></div>
-                        </div>
+                      <div>
+                        <div className="text-lg sm:text-xl font-bold text-white">{campaign.supporters}</div>
+                        <div className="text-xs text-white/60">Supporters</div>
                       </div>
-
-                      {/* Campaign Stats */}
-                      <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                          <div className="text-lg font-bold text-cyan-400">₦{campaign.raised.toLocaleString()}</div>
-                          <div className="text-xs text-white/60">Raised</div>
-                        </div>
-                        <div>
-                          <div className="text-lg font-bold text-white">{campaign.supporters}</div>
-                          <div className="text-xs text-white/60">Supporters</div>
-                        </div>
-                        <div>
-                          <div className="text-lg font-bold text-white">{campaign.daysLeft}</div>
-                          <div className="text-xs text-white/60">Days Left</div>
-                        </div>
-                      </div>
-
-                      {/* Goal */}
-                      <div className="mt-4 text-center">
-                        <div className="text-sm text-white/60">Goal: ₦{campaign.goal.toLocaleString()}</div>
+                      <div>
+                        <div className="text-lg sm:text-xl font-bold text-white">{campaign.daysLeft}</div>
+                        <div className="text-xs text-white/60">Days Left</div>
                       </div>
                     </div>
+
+                    {/* Goal */}
+                    <div className="text-center mb-4">
+                      <div className="text-white/70 text-xs sm:text-sm">Goal: ₦{campaign.goal.toLocaleString()}</div>
+                    </div>
+
+                    {/* Action Button */}
+                    <Link 
+                      href={`/campaign/${campaign.id}`}
+                      className="block w-full px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-red-400 to-cyan-400 text-white text-center rounded-xl font-semibold text-sm sm:text-base transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-red-400/30"
+                    >
+                      Support This Cause
+                    </Link>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
-          )}
-
-          {/* Load More Button */}
-          {filteredCampaigns.length > 0 && (
-            <div className="text-center mt-12">
-              <button className="px-8 py-4 bg-white/10 text-white font-semibold rounded-full border-2 border-white/30 backdrop-blur-md transition-all duration-300 hover:bg-white/20 hover:-translate-y-1">
-                <i className="fas fa-plus mr-2"></i>
-                Load More Campaigns
+          ) : (
+            <div className="text-center py-12 sm:py-16">
+              <i className="fas fa-search text-6xl text-white/30 mb-6"></i>
+              <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4">No campaigns found</h3>
+              <p className="text-white/70 text-base sm:text-lg mb-6">
+                Try adjusting your search terms or filters to find what you&apos;re looking for.
+              </p>
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCategory('');
+                  setSortBy('newest');
+                }}
+                className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-red-400 to-cyan-400 text-white rounded-full font-semibold text-base sm:text-lg hover:-translate-y-1 transition-all duration-300"
+              >
+                Clear Filters
               </button>
             </div>
           )}
+
+          {/* Create Campaign CTA */}
+          <div className="mt-12 sm:mt-16 text-center">
+            <div className="bg-white/10 rounded-3xl backdrop-blur-xl border border-white/20 p-8 sm:p-12 shadow-2xl">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
+                Have a Cause to Support?
+              </h2>
+              <p className="text-white/80 text-base sm:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto">
+                Start your own fundraising campaign and make a difference in your community. It only takes a few minutes to get started.
+              </p>
+              <Link 
+                href="/create_campaign"
+                className="inline-flex items-center gap-3 px-8 sm:px-12 py-4 sm:py-5 bg-gradient-to-r from-red-400 to-cyan-400 text-white rounded-full text-lg sm:text-xl font-bold hover:-translate-y-2 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-red-400/30"
+              >
+                <i className="fas fa-rocket"></i>
+                Start Your Campaign
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </>

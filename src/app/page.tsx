@@ -184,27 +184,7 @@ const HomePage: React.FC = () => {
     <div>
       <div className="bg-particles" id="particles" ref={particlesRef}></div>
 
-      <nav>
-        <div className="nav-container">
-          <a href="#" className="logo">
-            CrowdRaise
-          </a>
-          <ul className="nav-links">
-            <li>
-              <a href="#features">Features</a>
-            </li>
-            <li>
-              <a href="#pricing">Pricing</a>
-            </li>
-            <li>
-              <a href="#about">About</a>
-            </li>
-            <li>
-              <a href="#contact">Contact</a>
-            </li>
-          </ul>
-        </div>
-      </nav>
+      {/* <Header /> */}
 
       <section className="hero">
         <div className="hero-container">
@@ -295,13 +275,13 @@ const HomePage: React.FC = () => {
             with transparent, donor-friendly fundraising.
           </p>
 
-          <div className="email-signup">
+          <div className="email-signup mx-auto">
             <input
               type="email"
               className="email-input"
               placeholder="Enter your email for early access"
             />
-            <a href="#" className="btn-primary">
+            <a href="#" className="btn-primary mx-auto">
               Get Early Access
             </a>
           </div>

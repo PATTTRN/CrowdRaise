@@ -45,6 +45,7 @@ export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const particlesRef = useRef<HTMLDivElement>(null);
 
   // Sample data
@@ -100,41 +101,28 @@ export default function AdminDashboardPage() {
       status: 'rejected',
       submittedAt: "2024-01-17",
       image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      reason: "Business campaigns are not currently supported on this platform."
+      reason: "Insufficient documentation and unclear business model"
     },
     {
       id: '5',
-      title: "Support Local Artisan Cooperative",
+      title: "Local Artisan Support",
       category: "Community & Social",
       creator: "Artisan Empowerment Network",
-      creatorEmail: "hello@artisanempowerment.org",
+      creatorEmail: "info@artisanempowerment.org",
       location: "Ibadan, Nigeria",
       goal: 800000,
       description: "Help local artisans preserve traditional crafts and create sustainable livelihoods.",
       status: 'approved',
       submittedAt: "2024-01-16",
       image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      id: '6',
-      title: "Clean Water Project for Rural Village",
-      category: "Charity & Nonprofit",
-      creator: "Water for Life Foundation",
-      creatorEmail: "info@waterforlife.org",
-      location: "Kaduna, Nigeria",
-      goal: 1800000,
-      description: "Provide clean drinking water to 500 families in rural communities.",
-      status: 'pending',
-      submittedAt: "2024-01-15",
-      image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
     }
   ];
 
-  // Create floating particles
   useEffect(() => {
+    // Create floating particles
     if (particlesRef.current) {
       const container = particlesRef.current;
-      const particleCount = 15;
+      const particleCount = 30;
       
       for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
@@ -146,40 +134,27 @@ export default function AdminDashboardPage() {
         container.appendChild(particle);
       }
     }
-  }, []);
 
-  // Load data
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
+    // Simulate loading
+    const timer = setTimeout(() => {
       setCampaigns(sampleCampaigns);
       setFilteredCampaigns(sampleCampaigns);
-      
-      // Calculate stats
-      const pendingCampaigns = sampleCampaigns.filter(campaign => campaign.status === 'pending').length;
-      const approvedCampaigns = sampleCampaigns.filter(campaign => campaign.status === 'approved').length;
-      const rejectedCampaigns = sampleCampaigns.filter(campaign => campaign.status === 'rejected').length;
-      const totalRaised = 3200000; // Sample data
-      const totalUsers = 1250;
-      const activeUsers = 890;
-      const platformFee = totalRaised * 0.05; // 5% platform fee
-
       setStats({
         totalCampaigns: sampleCampaigns.length,
-        pendingCampaigns,
-        approvedCampaigns,
-        rejectedCampaigns,
-        totalRaised,
-        totalUsers,
-        activeUsers,
-        platformFee
+        pendingCampaigns: sampleCampaigns.filter(c => c.status === 'pending').length,
+        approvedCampaigns: sampleCampaigns.filter(c => c.status === 'approved').length,
+        rejectedCampaigns: sampleCampaigns.filter(c => c.status === 'rejected').length,
+        totalRaised: 8500000,
+        totalUsers: 1250,
+        activeUsers: 890,
+        platformFee: 170000
       });
-      
       setIsLoading(false);
     }, 1000);
+
+    return () => clearTimeout(timer);
   }, []);
 
-  // Filter campaigns
   useEffect(() => {
     let filtered = campaigns;
 
@@ -200,173 +175,171 @@ export default function AdminDashboardPage() {
     setFilteredCampaigns(filtered);
   }, [campaigns, searchTerm, selectedStatus]);
 
-  // Handle campaign approval/rejection
-  const handleCampaignAction = (campaignId: string, action: 'approve' | 'reject', reason?: string) => {
-    setCampaigns(prev => prev.map(campaign => 
-      campaign.id === campaignId 
-        ? { ...campaign, status: action === 'approve' ? 'approved' : 'rejected', reason }
-        : campaign
+  const handleApprove = (campaignId: string) => {
+    setCampaigns(prev => prev.map(c => 
+      c.id === campaignId ? { ...c, status: 'approved' as const } : c
+    ));
+  };
+
+  const handleReject = (campaignId: string, reason: string) => {
+    setCampaigns(prev => prev.map(c => 
+      c.id === campaignId ? { ...c, status: 'rejected' as const, reason } : c
     ));
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-500';
-      case 'approved': return 'bg-green-500';
-      case 'rejected': return 'bg-red-500';
-      default: return 'bg-gray-500';
+      case 'pending': return 'text-yellow-400 bg-yellow-400/10';
+      case 'approved': return 'text-green-400 bg-green-400/10';
+      case 'rejected': return 'text-red-400 bg-red-400/10';
+      default: return 'text-white/60 bg-white/5';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'pending': return 'Pending';
+      case 'pending': return 'Pending Review';
       case 'approved': return 'Approved';
       case 'rejected': return 'Rejected';
       default: return 'Unknown';
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return `₦${amount.toLocaleString()}`;
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading admin dashboard...</p>
+      <>
+        <div className="bg-particles" id="particles" ref={particlesRef}></div>
+        <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-white text-lg">Loading admin dashboard...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
     <>
-      <div className="bg-particles" ref={particlesRef}></div>
-
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full px-8 py-4 bg-white/10 backdrop-blur-md border-b border-white/20 z-50 transition-all duration-300">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="text-3xl font-bold text-transparent bg-gradient-to-r from-red-400 to-cyan-400 bg-clip-text">
-            DonateFlow Admin
-          </div>
-          <div className="flex gap-4 items-center">
-            <span className="text-white/70 text-sm">Admin Panel</span>
-            <button className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg border border-red-500/30 hover:bg-red-500/30 transition-all duration-300">
-              <i className="fas fa-sign-out-alt mr-2"></i>
-              Logout
-            </button>
-          </div>
-        </div>
-      </nav>
+      <div className="bg-particles" id="particles" ref={particlesRef}></div>
 
       {/* Main Content */}
-      <div className="pt-32 pb-16 px-8 relative z-10">
+      <div className="pt-20 pb-8 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-7xl mx-auto">
           
-          {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">Admin Dashboard</h1>
-            <p className="text-white/70">Manage campaigns, monitor platform performance, and ensure quality control</p>
+          {/* Header */}
+          <div className="mb-8 sm:mb-12">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4">
+              Admin Dashboard
+            </h1>
+            <p className="text-white/80 text-base sm:text-lg">
+              Manage campaigns, monitor platform performance, and ensure quality control.
+            </p>
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex gap-2 mb-8">
-            {[
-              { id: 'overview', label: 'Overview', icon: 'fas fa-chart-line' },
-              { id: 'pending', label: 'Pending Review', icon: 'fas fa-clock', count: stats.pendingCampaigns },
-              { id: 'approved', label: 'Approved', icon: 'fas fa-check-circle', count: stats.approvedCampaigns },
-              { id: 'rejected', label: 'Rejected', icon: 'fas fa-times-circle', count: stats.rejectedCampaigns }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setSelectedTab(tab.id as any)}
-                className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 relative ${
-                  selectedTab === tab.id
-                    ? 'bg-cyan-400 text-white shadow-lg shadow-cyan-400/30'
-                    : 'bg-white/10 text-white/70 hover:bg-white/20'
-                }`}
-              >
-                <i className={tab.icon}></i>
-                {tab.label}
-                {tab.count !== undefined && tab.count > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
+          <div className="mb-8">
+            <div className="flex flex-wrap gap-2 sm:gap-4">
+              {[
+                { id: 'overview', label: 'Overview', icon: 'fas fa-chart-line' },
+                { id: 'pending', label: 'Pending Review', icon: 'fas fa-clock', count: stats.pendingCampaigns },
+                { id: 'approved', label: 'Approved', icon: 'fas fa-check-circle', count: stats.approvedCampaigns },
+                { id: 'rejected', label: 'Rejected', icon: 'fas fa-times-circle', count: stats.rejectedCampaigns }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedTab(tab.id as "overview" | "pending" | "approved" | "rejected")}
+                  className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base font-medium transition-all duration-300 ${
+                    selectedTab === tab.id
+                      ? 'bg-gradient-to-r from-red-400 to-cyan-400 text-white shadow-lg'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                  }`}
+                >
+                  <i className={tab.icon}></i>
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  {tab.count !== undefined && (
+                    <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Overview Tab */}
           {selectedTab === 'overview' && (
-            <div className="space-y-8">
-              {/* Platform Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6 text-center">
-                  <div className="text-3xl font-bold text-cyan-400 mb-2">{stats.totalCampaigns}</div>
-                  <div className="text-white/70 text-sm">Total Campaigns</div>
-                </div>
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6 text-center">
-                  <div className="text-3xl font-bold text-green-400 mb-2">{stats.totalUsers}</div>
-                  <div className="text-white/70 text-sm">Total Users</div>
-                </div>
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6 text-center">
-                  <div className="text-3xl font-bold text-yellow-400 mb-2">{formatCurrency(stats.totalRaised)}</div>
-                  <div className="text-white/70 text-sm">Total Raised</div>
-                </div>
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6 text-center">
-                  <div className="text-3xl font-bold text-purple-400 mb-2">{formatCurrency(stats.platformFee)}</div>
-                  <div className="text-white/70 text-sm">Platform Fees</div>
-                </div>
+            <div className="space-y-6 sm:space-y-8">
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                {[
+                  { label: 'Total Campaigns', value: stats.totalCampaigns, icon: 'fas fa-bullhorn', color: 'from-blue-400 to-cyan-400' },
+                  { label: 'Pending Review', value: stats.pendingCampaigns, icon: 'fas fa-clock', color: 'from-yellow-400 to-orange-400' },
+                  { label: 'Total Raised', value: `₦${stats.totalRaised.toLocaleString()}`, icon: 'fas fa-money-bill-wave', color: 'from-green-400 to-emerald-400' },
+                  { label: 'Platform Fee', value: `₦${stats.platformFee.toLocaleString()}`, icon: 'fas fa-percentage', color: 'from-purple-400 to-pink-400' }
+                ].map((stat, index) => (
+                  <div key={index} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
+                        <i className={`${stat.icon} text-white text-lg`}></i>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl sm:text-3xl font-bold text-white">{stat.value}</div>
+                        <div className="text-white/60 text-sm">{stat.label}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              {/* Campaign Status Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6">
-                  <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                    <i className="fas fa-clock text-yellow-400"></i>
-                    Pending Review
+              {/* User Stats */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-3">
+                    <i className="fas fa-users text-cyan-400"></i>
+                    User Statistics
                   </h3>
-                  <div className="text-3xl font-bold text-yellow-400 mb-2">{stats.pendingCampaigns}</div>
-                  <div className="text-white/70 text-sm">Campaigns awaiting approval</div>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
+                      <span className="text-white/70">Total Users</span>
+                      <span className="text-white font-semibold">{stats.totalUsers.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
+                      <span className="text-white/70">Active Users</span>
+                      <span className="text-white font-semibold">{stats.activeUsers.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
+                      <span className="text-white/70">Engagement Rate</span>
+                      <span className="text-cyan-400 font-semibold">
+                        {((stats.activeUsers / stats.totalUsers) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6">
-                  <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                    <i className="fas fa-check-circle text-green-400"></i>
-                    Approved
-                  </h3>
-                  <div className="text-3xl font-bold text-green-400 mb-2">{stats.approvedCampaigns}</div>
-                  <div className="text-white/70 text-sm">Live campaigns</div>
-                </div>
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6">
-                  <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                    <i className="fas fa-times-circle text-red-400"></i>
-                    Rejected
-                  </h3>
-                  <div className="text-3xl font-bold text-red-400 mb-2">{stats.rejectedCampaigns}</div>
-                  <div className="text-white/70 text-sm">Rejected campaigns</div>
-                </div>
-              </div>
 
-              {/* Quick Actions */}
-              <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6">
-                <h3 className="text-xl font-semibold text-white mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <button className="px-6 py-4 bg-yellow-500/20 text-yellow-400 rounded-xl border border-yellow-500/30 hover:bg-yellow-500/30 transition-all duration-300">
-                    <i className="fas fa-clock mr-2"></i>
-                    Review Pending Campaigns
-                  </button>
-                  <button className="px-6 py-4 bg-green-500/20 text-green-400 rounded-xl border border-green-500/30 hover:bg-green-500/30 transition-all duration-300">
-                    <i className="fas fa-download mr-2"></i>
-                    Export Platform Report
-                  </button>
-                  <button className="px-6 py-4 bg-blue-500/20 text-blue-400 rounded-xl border border-blue-500/30 hover:bg-blue-500/30 transition-all duration-300">
-                    <i className="fas fa-cog mr-2"></i>
-                    Platform Settings
-                  </button>
+                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-3">
+                    <i className="fas fa-chart-pie text-cyan-400"></i>
+                    Campaign Status
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 bg-yellow-400/10 rounded-xl border border-yellow-400/20">
+                      <span className="text-yellow-400">Pending</span>
+                      <span className="text-yellow-400 font-semibold">{stats.pendingCampaigns}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-green-400/10 rounded-xl border border-green-400/20">
+                      <span className="text-green-400">Approved</span>
+                      <span className="text-green-400 font-semibold">{stats.approvedCampaigns}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-red-400/10 rounded-xl border border-red-400/20">
+                      <span className="text-red-400">Rejected</span>
+                      <span className="text-red-400 font-semibold">{stats.rejectedCampaigns}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -374,135 +347,114 @@ export default function AdminDashboardPage() {
 
           {/* Campaign Management Tabs */}
           {['pending', 'approved', 'rejected'].includes(selectedTab) && (
-            <div className="space-y-6">
+            <div className="space-y-6 sm:space-y-8">
               {/* Search and Filters */}
-              <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search campaigns..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full px-6 py-4 pl-12 rounded-xl border-2 border-white/20 bg-white/10 text-white text-base backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20 placeholder:text-white/60"
-                    />
-                    <i className="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60"></i>
-                  </div>
-                  <div>
-                    <select
-                      value={selectedStatus}
-                      onChange={(e) => setSelectedStatus(e.target.value)}
-                      className="w-full px-6 py-4 rounded-xl border-2 border-white/20 bg-white/10 text-white text-base backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20"
-                    >
-                      <option value="all">All Statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="approved">Approved</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                  </div>
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search campaigns..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder:text-white/50 backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20"
+                  />
                 </div>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="px-4 sm:px-6 py-3 sm:py-4 bg-white/10 border-2 border-white/20 rounded-xl text-white backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20"
+                >
+                  <option value="all" className="bg-gray-800 text-white">All Statuses</option>
+                  <option value="pending" className="bg-gray-800 text-white">Pending</option>
+                  <option value="approved" className="bg-gray-800 text-white">Approved</option>
+                  <option value="rejected" className="bg-gray-800 text-white">Rejected</option>
+                </select>
               </div>
 
               {/* Campaigns List */}
-              <div className="space-y-4">
+              <div className="space-y-4 sm:space-y-6">
                 {filteredCampaigns
-                  .filter(campaign => selectedTab === 'all' || campaign.status === selectedTab)
+                  .filter(campaign => selectedTab === 'overview' || campaign.status === selectedTab)
                   .map((campaign) => (
-                    <div key={campaign.id} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-6">
-                      <div className="flex flex-col lg:flex-row gap-6">
+                    <div key={campaign.id} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
+                      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
                         {/* Campaign Image */}
-                        <div className="lg:w-48 lg:h-32 w-full h-48">
-                          <img
-                            src={campaign.image}
-                            alt={campaign.title}
-                            className="w-full h-full object-cover rounded-xl"
+                        <div className="flex-shrink-0">
+                          <img 
+                            src={campaign.image} 
+                            alt={campaign.title} 
+                            className="w-full lg:w-48 h-32 lg:h-32 rounded-xl object-cover"
                           />
                         </div>
 
                         {/* Campaign Details */}
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              <h3 className="text-xl font-bold text-white mb-2">{campaign.title}</h3>
-                              <div className="flex items-center gap-4 text-sm text-white/60 mb-2">
-                                <span><i className="fas fa-user text-cyan-400 mr-2"></i>{campaign.creator}</span>
-                                <span><i className="fas fa-tag text-cyan-400 mr-2"></i>{campaign.category}</span>
-                                <span><i className="fas fa-map-marker-alt text-cyan-400 mr-2"></i>{campaign.location}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">
+                            <div className="flex-1">
+                              <h3 className="text-white font-bold text-lg sm:text-xl mb-2 line-clamp-2">
+                                {campaign.title}
+                              </h3>
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
+                                  {getStatusText(campaign.status)}
+                                </span>
+                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-white/70">
+                                  {campaign.category}
+                                </span>
                               </div>
-                              <p className="text-white/80 text-sm line-clamp-2">{campaign.description}</p>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium text-white ${getStatusColor(campaign.status)}`}>
-                                {getStatusText(campaign.status)}
-                              </span>
+                            <div className="text-right text-sm text-white/60">
+                              Submitted: {new Date(campaign.submittedAt).toLocaleDateString()}
                             </div>
                           </div>
 
-                          {/* Campaign Info */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                          <p className="text-white/70 text-sm sm:text-base mb-4 line-clamp-2">
+                            {campaign.description}
+                          </p>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-sm mb-4">
                             <div>
-                              <div className="text-sm text-white/60">Goal</div>
-                              <div className="text-white font-semibold">{formatCurrency(campaign.goal)}</div>
+                              <div className="text-white/60">Creator</div>
+                              <div className="text-white font-medium">{campaign.creator}</div>
                             </div>
                             <div>
-                              <div className="text-sm text-white/60">Submitted</div>
-                              <div className="text-white font-semibold">{campaign.submittedAt}</div>
+                              <div className="text-white/60">Email</div>
+                              <div className="text-white font-medium truncate">{campaign.creatorEmail}</div>
                             </div>
                             <div>
-                              <div className="text-sm text-white/60">Creator Email</div>
-                              <div className="text-white font-semibold text-sm">{campaign.creatorEmail}</div>
+                              <div className="text-white/60">Location</div>
+                              <div className="text-white font-medium">{campaign.location}</div>
                             </div>
                             <div>
-                              <div className="text-sm text-white/60">ID</div>
-                              <div className="text-white font-semibold text-sm">#{campaign.id}</div>
+                              <div className="text-white/60">Goal</div>
+                              <div className="text-white font-medium">₦{campaign.goal.toLocaleString()}</div>
                             </div>
                           </div>
 
-                          {/* Actions */}
+                          {/* Rejection Reason */}
+                          {campaign.status === 'rejected' && campaign.reason && (
+                            <div className="mb-4 p-3 bg-red-400/10 border border-red-400/20 rounded-lg">
+                              <div className="text-red-400 font-medium text-sm mb-1">Rejection Reason:</div>
+                              <div className="text-red-400/80 text-sm">{campaign.reason}</div>
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
                           {campaign.status === 'pending' && (
-                            <div className="flex gap-3">
+                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                               <button
-                                onClick={() => handleCampaignAction(campaign.id, 'approve')}
-                                className="px-6 py-3 bg-green-500/20 text-green-400 rounded-xl border border-green-500/30 hover:bg-green-500/30 transition-all duration-300"
+                                onClick={() => handleApprove(campaign.id)}
+                                className="px-4 sm:px-6 py-2 sm:py-3 bg-green-500/20 text-green-400 rounded-lg font-medium border border-green-400/30 hover:bg-green-500/30 transition-colors"
                               >
                                 <i className="fas fa-check mr-2"></i>
                                 Approve
                               </button>
                               <button
-                                onClick={() => {
-                                  const reason = prompt('Please provide a reason for rejection:');
-                                  if (reason) {
-                                    handleCampaignAction(campaign.id, 'reject', reason);
-                                  }
-                                }}
-                                className="px-6 py-3 bg-red-500/20 text-red-400 rounded-xl border border-red-500/30 hover:bg-red-500/30 transition-all duration-300"
+                                onClick={() => handleReject(campaign.id, 'Insufficient documentation')}
+                                className="px-4 sm:px-6 py-2 sm:py-3 bg-red-500/20 text-red-400 rounded-lg font-medium border border-red-400/30 hover:bg-red-500/30 transition-colors"
                               >
                                 <i className="fas fa-times mr-2"></i>
                                 Reject
-                              </button>
-                              <button className="px-6 py-3 bg-white/10 text-white rounded-xl border border-white/30 hover:bg-white/20 transition-all duration-300">
-                                <i className="fas fa-eye mr-2"></i>
-                                View Details
-                              </button>
-                            </div>
-                          )}
-
-                          {campaign.status === 'rejected' && campaign.reason && (
-                            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-                              <div className="text-sm text-red-400 font-medium mb-1">Rejection Reason:</div>
-                              <div className="text-white/80 text-sm">{campaign.reason}</div>
-                            </div>
-                          )}
-
-                          {campaign.status === 'approved' && (
-                            <div className="flex gap-3">
-                              <button className="px-6 py-3 bg-blue-500/20 text-blue-400 rounded-xl border border-blue-500/30 hover:bg-blue-500/30 transition-all duration-300">
-                                <i className="fas fa-eye mr-2"></i>
-                                View Campaign
-                              </button>
-                              <button className="px-6 py-3 bg-yellow-500/20 text-yellow-400 rounded-xl border border-yellow-500/30 hover:bg-yellow-500/30 transition-all duration-300">
-                                <i className="fas fa-pause mr-2"></i>
-                                Suspend
                               </button>
                             </div>
                           )}
@@ -512,12 +464,16 @@ export default function AdminDashboardPage() {
                   ))}
               </div>
 
-              {/* No Results */}
-              {filteredCampaigns.filter(campaign => selectedTab === 'all' || campaign.status === selectedTab).length === 0 && (
-                <div className="text-center py-16">
-                  <div className="text-6xl mb-4">📋</div>
-                  <h3 className="text-2xl font-semibold text-white mb-2">No campaigns found</h3>
-                  <p className="text-white/70">No campaigns match your current filters</p>
+              {/* Empty State */}
+              {filteredCampaigns.filter(c => selectedTab === 'overview' || c.status === selectedTab).length === 0 && (
+                <div className="text-center py-12 sm:py-16">
+                  <i className="fas fa-inbox text-6xl text-white/30 mb-6"></i>
+                  <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4">No campaigns found</h3>
+                  <p className="text-white/70 text-base sm:text-lg">
+                    {selectedTab === 'pending' && 'No campaigns are currently pending review.'}
+                    {selectedTab === 'approved' && 'No campaigns have been approved yet.'}
+                    {selectedTab === 'rejected' && 'No campaigns have been rejected.'}
+                  </p>
                 </div>
               )}
             </div>
