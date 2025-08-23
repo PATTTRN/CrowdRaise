@@ -11,32 +11,17 @@ const FEATURES = [
   {
     icon: "fas fa-hand-holding-heart",
     title: "Zero Donor Fees",
-    desc: "Donors pay exactly what they intend. We charge campaign creators only 2% on successful withdrawals.",
+    desc: "Donors pay exactly what they intend.",
   },
   {
     icon: "fas fa-rocket",
     title: "Lightning Fast Setup",
-    desc: "Create and launch your campaign in under 3 minutes. No back-and-forth, no waiting for approval.",
+    desc: "Create and launch your campaign in under 3 minutes.",
   },
   {
     icon: "fas fa-mobile-alt",
     title: "Mobile-First Design",
     desc: "Beautiful, intuitive interface that works perfectly on every device. One-tap donations that actually work.",
-  },
-  {
-    icon: "fas fa-chart-line",
-    title: "Real-Time Analytics",
-    desc: "Track your progress with detailed insights. Know exactly where your donations are coming from.",
-  },
-  {
-    icon: "fas fa-shield-alt",
-    title: "Bank-Level Security",
-    desc: "Your money is protected with enterprise-grade security and instant fraud detection.",
-  },
-  {
-    icon: "fas fa-clock",
-    title: "Instant Withdrawals",
-    desc: "Access your funds immediately. No waiting periods, no complex approval processes.",
   },
 ];
 
@@ -199,11 +184,11 @@ const HomePage: React.FC = () => {
             </p>
 
             <div className="cta-buttons">
-              <a href="#" className="btn-primary">
+              <a href="/create_campaign" className="btn-primary">
                 Start Fundraising
               </a>
-              <a href="#" className="btn-secondary">
-                Watch Demo
+              <a href="/explore" className="btn-secondary">
+                Donate to a Cause
               </a>
             </div>
 
@@ -267,33 +252,120 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      <section className="cta-section">
-        <div className="cta-container">
-          <h2>Ready to Launch Your Campaign?</h2>
-          <p>
-            Join thousands of successful fundraisers who&apos;ve raised millions
-            with transparent, donor-friendly fundraising.
+      {/* About Section */}
+      <section className="about-section py-20" id="about">
+        <div className="about-container max-w-3xl mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            About CrowdRaise
+          </h2>
+          <p className="text-white/80 text-lg mb-10">
+            CrowdRaise is a next-generation fundraising platform built to empower individuals, communities, and organizations to make a real impact.
+            Our mission is to make fundraising transparent, accessible, and truly donor-friendly. Whether you want to support a cause or start your own,
+            CrowdRaise gives you the tools to succeed—no hidden fees, no confusing processes, just real results.
           </p>
+          <div className="flex flex-wrap justify-center gap-8">
+            <div className="flex-1 min-w-[250px] max-w-xs bg-white/10 rounded-xl p-8 flex flex-col items-center">
+              <i className="fas fa-users text-3xl text-primary-400 mb-3"></i>
+              <h3 className="text-white font-semibold text-lg mb-2">
+                Community Driven
+              </h3>
+              <p className="text-white/70">
+                Built for people, by people. We listen to our users and improve constantly.
+              </p>
+            </div>
+            <div className="flex-1 min-w-[250px] max-w-xs bg-white/10 rounded-xl p-8 flex flex-col items-center">
+              <i className="fas fa-lock text-3xl text-red-400 mb-3"></i>
+              <h3 className="text-white font-semibold text-lg mb-2">
+                Secure &amp; Transparent
+              </h3>
+              <p className="text-white/70">
+                Your donations and data are protected with industry-leading security and transparency.
+              </p>
+            </div>
+            <div className="flex-1 min-w-[250px] max-w-xs bg-white/10 rounded-xl p-8 flex flex-col items-center">
+              <i className="fas fa-globe-africa text-3xl text-primary-400 mb-3"></i>
+              <h3 className="text-white font-semibold text-lg mb-2">
+                For Africa &amp; Beyond
+              </h3>
+              <p className="text-white/70">
+                Designed for the unique needs of African communities, but open to the world.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-          <div className="email-signup mx-auto">
-            <input
-              type="email"
-              className="email-input"
-              placeholder="Enter your email for early access"
-            />
-            <a href="#" className="btn-primary mx-auto">
-              Get Early Access
+      {/* CTA Section (replaces Get Early Access) */}
+      <section className="cta-section" id="cta">
+        <div className="cta-container">
+          <h2>Make a Difference Today</h2>
+          <p>
+            Whether you want to support a cause or start your own, CrowdRaise makes it easy to take action.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center align-center gap-6 mb-6 w-full">
+            <a
+              href="/create_campaign"
+              className="btn-primary min-w-[180px] text-center transition-transform duration-150"
+            >
+              Create a Campaign
+            </a>
+            <a
+              href="/explore"
+              className="btn-secondary min-w-[180px] text-center transition-transform duration-150"
+            >
+              Donate to a Cause
             </a>
           </div>
+          <p className="text-white/60 text-sm">
+            Join thousands of changemakers on CrowdRaise.
+          </p>
+        </div>
+      </section>
 
-          <p
-            style={{
-              color: "rgba(255, 255, 255, 0.6)",
-              fontSize: "0.9rem",
+      {/* Contact Us Section */}
+      <section className="contact-section py-20 bg-white/5" id="contact">
+        <div className="contact-container max-w-xl mx-auto px-4 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-6">
+            Contact Us
+          </h2>
+          <p className="text-white/80 mb-8">
+            Have questions, feedback, or want to partner with us? We&apos;d love to hear from you!
+          </p>
+          <form
+            className="flex flex-col gap-5 max-w-xl mx-auto"
+            onSubmit={e => {
+              e.preventDefault();
+              alert("Thank you for reaching out! We'll get back to you soon.");
             }}
           >
-            🚀 Launching Q1 2025 • Be among the first to try CrowdRaise
-          </p>
+            <input
+              type="text"
+              placeholder="Your Name"
+              required
+              className="px-5 py-3 rounded-lg border-none bg-white/20 text-white text-base focus:outline-none focus:ring-2 focus:ring-primary-400 placeholder-white/60"
+            />
+            <input
+              type="email"
+              placeholder="Your Email"
+              required
+              className="px-5 py-3 rounded-lg border-none bg-white/20 text-white text-base focus:outline-none focus:ring-2 focus:ring-primary-400 placeholder-white/60"
+            />
+            <textarea
+              placeholder="Your Message"
+              required
+              rows={4}
+              className="px-5 py-3 rounded-lg border-none bg-white/20 text-white text-base resize-vertical focus:outline-none focus:ring-2 focus:ring-primary-400 placeholder-white/60"
+            />
+            <button
+              type="submit"
+              className="btn-primary w-full font-semibold text-lg mt-2 transition-transform duration-150"
+            >
+              Send Message
+            </button>
+          </form>
+          {/* <div className="mt-8 text-white/50 text-sm">
+            Or email us directly at <a href="mailto:hello@crowdraise.com" className="text-primary-400">hello@crowdraise.com</a>
+          </div> */}
         </div>
       </section>
     </div>
