@@ -1,3 +1,4 @@
+import Link from "next/link";
 import React from "react";
 
 const Footer: React.FC = () => {
@@ -18,9 +19,9 @@ const Footer: React.FC = () => {
           <div className="font-semibold mb-2">Quick Links</div>
           <ul className="space-y-1 text-white/85">
             <li>
-              <a href="/" className="hover:text-[#4ecdc4] transition-colors">
+              <Link href="/" className="hover:text-[#4ecdc4] transition-colors">
                 Home
-              </a>
+              </Link>
             </li>
             <li>
               <a href="/explore" className="hover:text-[#4ecdc4] transition-colors">
