@@ -3,8 +3,8 @@ import Link from "next/link";
 import React, { useState } from "react";
 
 const NAV_ITEMS = [
-  { href: "/explore", label: "Explore Campaigns" },
-  { href: "/create_campaign", label: "Create Campaign" },
+  { href: "/explore", label: "Explore Collections" },
+  { href: "/create_campaign", label: "Create Collection" },
   { href: "/dashboard", label: "Dashboard" },
 ];
 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 interface Campaign {
   id: string;
+  type: 'fundraiser' | 'occasion' | 'tips';
   title: string;
   category: string;
   goal: number;
@@ -20,7 +21,7 @@ interface Donation {
   id: string;
   campaignId: string;
   campaignTitle: string;
-  donorName: string;
+  supporterName: string;
   amount: number;
   date: string;
   message?: string;
@@ -55,6 +56,7 @@ export default function DashboardPage() {
   const sampleCampaigns: Campaign[] = [
     {
       id: '1',
+      type: 'fundraiser',
       title: "Help Sarah Complete Her Medical School Journey",
       category: "Medical & Healthcare",
       goal: 650000,
@@ -67,6 +69,7 @@ export default function DashboardPage() {
     },
     {
       id: '2',
+      type: 'fundraiser',
       title: "Community Library Project",
       category: "Education",
       goal: 1200000,
@@ -79,6 +82,7 @@ export default function DashboardPage() {
     },
     {
       id: '3',
+      type: 'occasion',
       title: "Local Artisan Support",
       category: "Community & Social",
       goal: 800000,
@@ -96,7 +100,7 @@ export default function DashboardPage() {
       id: '1',
       campaignId: '1',
       campaignTitle: "Help Sarah Complete Her Medical School Journey",
-      donorName: "Anonymous Donor",
+      supporterName: "Anonymous Supporter",
       amount: 15000,
       date: "2 hours ago",
       message: "Keep going Sarah! You're almost there!"
@@ -105,7 +109,7 @@ export default function DashboardPage() {
       id: '2',
       campaignId: '2',
       campaignTitle: "Community Library Project",
-      donorName: "Michael Johnson",
+      supporterName: "Michael Johnson",
       amount: 25000,
       date: "5 hours ago",
       message: "Education is the key to success"
@@ -114,7 +118,7 @@ export default function DashboardPage() {
       id: '3',
       campaignId: '1',
       campaignTitle: "Help Sarah Complete Her Medical School Journey",
-      donorName: "Sarah Williams",
+      supporterName: "Sarah Williams",
       amount: 10000,
       date: "1 day ago"
     },
@@ -122,7 +126,7 @@ export default function DashboardPage() {
       id: '4',
       campaignId: '3',
       campaignTitle: "Local Artisan Support",
-      donorName: "David Brown",
+      supporterName: "David Brown",
       amount: 50000,
       date: "2 days ago",
       message: "Supporting local businesses is important"
@@ -216,7 +220,7 @@ export default function DashboardPage() {
               Dashboard
             </h1>
             <p className="text-white/80 text-base sm:text-lg">
-              Welcome back! Here&apos;s an overview of your fundraising activities.
+              Welcome back! Here&apos;s an overview of your collections and supporter activity.
             </p>
           </div>
 
@@ -225,8 +229,8 @@ export default function DashboardPage() {
             <div className="flex flex-wrap gap-2 sm:gap-4">
               {[
                 { id: 'overview', label: 'Overview', icon: 'fas fa-chart-line' },
-                { id: 'campaigns', label: 'Campaigns', icon: 'fas fa-bullhorn' },
-                { id: 'donations', label: 'Donations', icon: 'fas fa-heart' }
+                { id: 'campaigns', label: 'Collections', icon: 'fas fa-bullhorn' },
+                { id: 'donations', label: 'Contributions', icon: 'fas fa-heart' }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -250,11 +254,11 @@ export default function DashboardPage() {
               {/* Stats Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {[
-                  { label: 'Total Campaigns', value: stats.totalCampaigns, icon: 'fas fa-bullhorn', color: 'from-blue-400 to-cyan-400' },
-                  { label: 'Active Campaigns', value: stats.activeCampaigns, icon: 'fas fa-play-circle', color: 'from-green-400 to-emerald-400' },
+                  { label: 'Total Collections', value: stats.totalCampaigns, icon: 'fas fa-bullhorn', color: 'from-blue-400 to-cyan-400' },
+                  { label: 'Active Collections', value: stats.activeCampaigns, icon: 'fas fa-play-circle', color: 'from-green-400 to-emerald-400' },
                   { label: 'Total Raised', value: `₦${stats.totalRaised.toLocaleString()}`, icon: 'fas fa-money-bill-wave', color: 'from-yellow-400 to-orange-400' },
                   { label: 'Total Supporters', value: stats.totalSupporters, icon: 'fas fa-users', color: 'from-purple-400 to-pink-400' },
-                  { label: 'Avg. Donation', value: `₦${stats.averageDonation.toLocaleString()}`, icon: 'fas fa-chart-bar', color: 'from-indigo-400 to-blue-400' },
+                  { label: 'Avg. Contribution', value: `₦${stats.averageDonation.toLocaleString()}`, icon: 'fas fa-chart-bar', color: 'from-indigo-400 to-blue-400' },
                   { label: 'Completion Rate', value: `${stats.completionRate}%`, icon: 'fas fa-percentage', color: 'from-red-400 to-pink-400' }
                 ].map((stat, index) => (
                   <div key={index} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
@@ -277,7 +281,7 @@ export default function DashboardPage() {
                 <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
                   <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-3">
                     <i className="fas fa-bullhorn text-cyan-400"></i>
-                    Recent Campaigns
+                    Recent Collections
                   </h3>
                   <div className="space-y-3 sm:space-y-4">
                     {campaigns.slice(0, 3).map((campaign) => (
@@ -298,7 +302,7 @@ export default function DashboardPage() {
                   <div className="mt-4 sm:mt-6 text-center">
                     <Link href="/create_campaign" className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-400 to-cyan-400 text-white rounded-full text-sm sm:text-base font-medium hover:-translate-y-1 transition-all duration-300">
                       <i className="fas fa-plus"></i>
-                      Create New Campaign
+                      Create New Collection
                     </Link>
                   </div>
                 </div>
@@ -307,16 +311,16 @@ export default function DashboardPage() {
                 <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
                   <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-3">
                     <i className="fas fa-heart text-cyan-400"></i>
-                    Recent Donations
+                    Recent Contributions
                   </h3>
                   <div className="space-y-3 sm:space-y-4">
                     {recentDonations.slice(0, 4).map((donation) => (
                       <div key={donation.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-red-400 to-cyan-400 flex items-center justify-center text-white font-semibold text-sm sm:text-base">
-                          {donation.donorName.charAt(0)}
+                          {donation.supporterName.charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-white font-medium text-sm sm:text-base">{donation.donorName}</div>
+                          <div className="text-white font-medium text-sm sm:text-base">{donation.supporterName}</div>
                           <div className="text-white/60 text-xs sm:text-sm truncate">{donation.campaignTitle}</div>
                         </div>
                         <div className="text-right">
@@ -335,10 +339,10 @@ export default function DashboardPage() {
           {selectedTab === 'campaigns' && (
             <div className="space-y-6 sm:space-y-8">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white">Your Campaigns</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">Your Collections</h2>
                 <Link href="/create_campaign" className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-400 to-cyan-400 text-white rounded-full text-sm sm:text-base font-medium hover:-translate-y-1 transition-all duration-300">
                   <i className="fas fa-plus"></i>
-                  <span className="hidden sm:inline">Create Campaign</span>
+                  <span className="hidden sm:inline">Create Collection</span>
                 </Link>
               </div>
 
@@ -389,14 +393,14 @@ export default function DashboardPage() {
           {/* Donations Tab */}
           {selectedTab === 'donations' && (
             <div className="space-y-6 sm:space-y-8">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white">Recent Donations</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white">Recent Contributions</h2>
               
               <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-white/5">
                       <tr>
-                        <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Donor</th>
+                        <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Supporter</th>
                         <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Campaign</th>
                         <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Amount</th>
                         <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Date</th>
@@ -409,10 +413,10 @@ export default function DashboardPage() {
                           <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-red-400 to-cyan-400 flex items-center justify-center text-white font-semibold text-xs sm:text-sm">
-                                {donation.donorName.charAt(0)}
+                                {donation.supporterName.charAt(0)}
                               </div>
                               <div className="ml-3">
-                                <div className="text-sm sm:text-base font-medium text-white">{donation.donorName}</div>
+                                <div className="text-sm sm:text-base font-medium text-white">{donation.supporterName}</div>
                               </div>
                             </div>
                           </td>

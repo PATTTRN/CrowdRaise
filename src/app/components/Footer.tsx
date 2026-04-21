@@ -25,12 +25,12 @@ const Footer: React.FC = () => {
             </li>
             <li>
               <a href="/explore" className="hover:text-[#4ecdc4] transition-colors">
-                Explore Campaigns
+                Explore Collections
               </a>
             </li>
             <li>
               <a href="/create_campaign" className="hover:text-[#4ecdc4] transition-colors">
-                Start Fundraising
+                Create Collection
               </a>
             </li>
             <li>

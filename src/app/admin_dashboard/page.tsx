@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 
 interface Campaign {
   id: string;
+  type: 'fundraiser' | 'occasion' | 'tips';
   title: string;
   category: string;
   creator: string;
@@ -52,6 +53,7 @@ export default function AdminDashboardPage() {
   const sampleCampaigns: Campaign[] = [
     {
       id: '1',
+      type: 'fundraiser',
       title: "Help Sarah Complete Her Medical School Journey",
       category: "Medical & Healthcare",
       creator: "Sarah Johnson",
@@ -65,6 +67,7 @@ export default function AdminDashboardPage() {
     },
     {
       id: '2',
+      type: 'fundraiser',
       title: "Community Library Project",
       category: "Education",
       creator: "Community Development Initiative",
@@ -78,6 +81,7 @@ export default function AdminDashboardPage() {
     },
     {
       id: '3',
+      type: 'fundraiser',
       title: "Emergency Relief for Flood Victims",
       category: "Emergency & Crisis",
       creator: "Disaster Relief Foundation",
@@ -91,8 +95,9 @@ export default function AdminDashboardPage() {
     },
     {
       id: '4',
+      type: 'tips',
       title: "Startup Funding for Tech Innovation",
-      category: "Business & Startup",
+      category: "Personal Tips",
       creator: "TechVision Labs",
       creatorEmail: "contact@techvisionlabs.com",
       location: "Abuja, Nigeria",
@@ -105,8 +110,9 @@ export default function AdminDashboardPage() {
     },
     {
       id: '5',
+      type: 'occasion',
       title: "Local Artisan Support",
-      category: "Community & Social",
+      category: "Occasion Gifts",
       creator: "Artisan Empowerment Network",
       creatorEmail: "info@artisanempowerment.org",
       location: "Ibadan, Nigeria",
@@ -237,7 +243,7 @@ export default function AdminDashboardPage() {
               Admin Dashboard
             </h1>
             <p className="text-white/80 text-base sm:text-lg">
-              Manage campaigns, monitor platform performance, and ensure quality control.
+              Manage collections, monitor platform performance, and ensure quality control.
             </p>
           </div>
 
@@ -277,7 +283,7 @@ export default function AdminDashboardPage() {
               {/* Stats Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {[
-                  { label: 'Total Campaigns', value: stats.totalCampaigns, icon: 'fas fa-bullhorn', color: 'from-blue-400 to-cyan-400' },
+                  { label: 'Total Collections', value: stats.totalCampaigns, icon: 'fas fa-bullhorn', color: 'from-blue-400 to-cyan-400' },
                   { label: 'Pending Review', value: stats.pendingCampaigns, icon: 'fas fa-clock', color: 'from-yellow-400 to-orange-400' },
                   { label: 'Total Raised', value: `₦${stats.totalRaised.toLocaleString()}`, icon: 'fas fa-money-bill-wave', color: 'from-green-400 to-emerald-400' },
                   { label: 'Platform Fee', value: `₦${stats.platformFee.toLocaleString()}`, icon: 'fas fa-percentage', color: 'from-purple-400 to-pink-400' }
@@ -324,7 +330,7 @@ export default function AdminDashboardPage() {
                 <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
                   <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-3">
                     <i className="fas fa-chart-pie text-cyan-400"></i>
-                    Campaign Status
+                    Collection Status
                   </h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-3 bg-yellow-400/10 rounded-xl border border-yellow-400/20">
@@ -353,7 +359,7 @@ export default function AdminDashboardPage() {
                 <div className="flex-1">
                   <input
                     type="text"
-                    placeholder="Search campaigns..."
+                    placeholder="Search collections..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder:text-white/50 backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20"
@@ -371,7 +377,7 @@ export default function AdminDashboardPage() {
                 </select>
               </div>
 
-              {/* Campaigns List */}
+              {/* Collections List */}
               <div className="space-y-4 sm:space-y-6">
                 {filteredCampaigns
                   .filter(campaign => selectedTab === 'overview' || campaign.status === selectedTab)
@@ -400,6 +406,9 @@ export default function AdminDashboardPage() {
                                 </span>
                                 <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-white/70">
                                   {campaign.category}
+                                </span>
+                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-cyan-400/15 text-cyan-300 capitalize">
+                                  {campaign.type}
                                 </span>
                               </div>
                             </div>
@@ -468,11 +477,11 @@ export default function AdminDashboardPage() {
               {filteredCampaigns.filter(c => selectedTab === 'overview' || c.status === selectedTab).length === 0 && (
                 <div className="text-center py-12 sm:py-16">
                   <i className="fas fa-inbox text-6xl text-white/30 mb-6"></i>
-                  <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4">No campaigns found</h3>
+                  <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4">No collections found</h3>
                   <p className="text-white/70 text-base sm:text-lg">
-                    {selectedTab === 'pending' && 'No campaigns are currently pending review.'}
-                    {selectedTab === 'approved' && 'No campaigns have been approved yet.'}
-                    {selectedTab === 'rejected' && 'No campaigns have been rejected.'}
+                    {selectedTab === 'pending' && 'No collections are currently pending review.'}
+                    {selectedTab === 'approved' && 'No collections have been approved yet.'}
+                    {selectedTab === 'rejected' && 'No collections have been rejected.'}
                   </p>
                 </div>
               )}
