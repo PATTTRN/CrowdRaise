@@ -29,7 +29,7 @@ const Footer: React.FC = () => {
               </a>
             </li>
             <li>
-              <a href="/create_campaign" className="hover:text-[#4ecdc4] transition-colors">
+              <a href="/create_collection" className="hover:text-[#4ecdc4] transition-colors">
                 Create Collection
               </a>
             </li>

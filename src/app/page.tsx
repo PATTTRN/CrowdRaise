@@ -16,7 +16,7 @@ const COLLECTION_TYPES = [
     label: "Fundraiser",
     tagline: "Rally support for your cause",
     description:
-      "Medical bills, education, emergencies, community projects — bring your cause to life with a campaign page that moves people.",
+      "Medical bills, education, emergencies, community projects — bring your cause to life with a collection page that moves people.",
     color: "#f43f5e",
     gradient: "linear-gradient(135deg, #f43f5e, #fb923c)",
     bgAccent: "rgba(244,63,94,0.10)",
@@ -28,7 +28,7 @@ const COLLECTION_TYPES = [
       "Community borehole",
     ],
     cta: "Start a fundraiser",
-    href: "/create_campaign?type=fundraiser",
+    href: "/create_collection?type=fundraiser",
   },
   {
     id: "occasion",
@@ -48,7 +48,7 @@ const COLLECTION_TYPES = [
       "Anniversary celebration",
     ],
     cta: "Create a gift page",
-    href: "/create_campaign?type=occasion",
+    href: "/create_collection?type=occasion",
   },
   {
     id: "tips",
@@ -68,7 +68,7 @@ const COLLECTION_TYPES = [
       "Street food vendor",
     ],
     cta: "Set up a tip page",
-    href: "/create_campaign?type=tips",
+    href: "/create_collection?type=tips",
   },
 ];
 
@@ -298,7 +298,7 @@ const HomePage: React.FC = () => {
             </p>
 
             <div className="cta-buttons">
-              <a href="/create_campaign" className="btn-primary">
+              <a href="/create_collection" className="btn-primary">
                 Start a Collection
               </a>
               <a href="/explore" className="btn-secondary">
@@ -715,7 +715,7 @@ const HomePage: React.FC = () => {
           </p>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-6 w-full">
             <a
-              href="/create_campaign"
+              href="/create_collection"
               className="btn-primary min-w-[180px] text-center"
             >
               Create a Collection

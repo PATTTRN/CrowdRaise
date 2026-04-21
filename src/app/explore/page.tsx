@@ -36,7 +36,7 @@ const TYPE_META = {
 
 type CollectionType = keyof typeof TYPE_META;
 
-interface Campaign {
+interface Collection {
   id: string;
   type: CollectionType;
   title: string;
@@ -54,7 +54,7 @@ interface Campaign {
   featured?: boolean;
 }
 
-const SAMPLE_CAMPAIGNS: Campaign[] = [
+const SAMPLE_CAMPAIGNS: Collection[] = [
   {
     id: '1',
     type: 'fundraiser',
@@ -212,8 +212,8 @@ const CATEGORIES = [
 ];
 
 export default function ExplorePage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [filtered, setFiltered] = useState<Campaign[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [filtered, setFiltered] = useState<Collection[]>([]);
   const [typeFilter, setTypeFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('All Categories');
   const [searchTerm, setSearchTerm] = useState('');
@@ -235,14 +235,14 @@ export default function ExplorePage() {
       }
     }
     setTimeout(() => {
-      setCampaigns(SAMPLE_CAMPAIGNS);
+      setCollections(SAMPLE_CAMPAIGNS);
       setFiltered(SAMPLE_CAMPAIGNS);
       setIsLoading(false);
     }, 800);
   }, []);
 
   useEffect(() => {
-    let result = [...campaigns];
+    let result = [...collections];
     if (typeFilter !== 'all') result = result.filter(c => c.type === typeFilter);
     if (categoryFilter !== 'All Categories') result = result.filter(c => c.category === categoryFilter);
     if (searchTerm) {
@@ -258,7 +258,7 @@ export default function ExplorePage() {
       default: result.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
     }
     setFiltered(result);
-  }, [campaigns, typeFilter, categoryFilter, searchTerm, sortBy]);
+  }, [collections, typeFilter, categoryFilter, searchTerm, sortBy]);
 
   if (isLoading) {
     return (
@@ -368,7 +368,7 @@ export default function ExplorePage() {
         <div className="max-w-7xl mx-auto">
           {/* ── Results count ── */}
           <div className="mb-6 text-white/45 text-sm text-center">
-            Showing <span className="text-white font-semibold">{filtered.length}</span> of {campaigns.length} collections
+            Showing <span className="text-white font-semibold">{filtered.length}</span> of {collections.length} collections
           </div>
 
           {/* ── Cards grid ── */}
@@ -457,7 +457,7 @@ export default function ExplorePage() {
 
                       {/* CTA */}
                       <Link
-                        href={`/campaign/${c.id}`}
+                        href={`/collection_detail/${c.id}`}
                         className="block w-full py-3 rounded-xl font-bold text-sm text-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
                         style={{ background: meta.gradient }}
                       >
@@ -500,7 +500,7 @@ export default function ExplorePage() {
                   return (
                     <Link
                       key={type}
-                      href={`/create_campaign?type=${type}`}
+                      href={`/create_collection?type=${type}`}
                       className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
                       style={{ background: m.gradient }}
                     >

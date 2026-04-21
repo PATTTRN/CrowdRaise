@@ -4,16 +4,16 @@ A modern, responsive fundraising platform built with Next.js 15 and Tailwind CSS
 
 ## Features
 
-- **Create Campaign Page**: Multi-step form for creating fundraising campaigns
-- **Campaigns Page**: Detailed campaign view with donation functionality
-- **Explore Page**: Browse and discover all campaigns with search and filtering
-- **Dashboard**: Campaign creator dashboard to track performance and donations
-- **Admin Dashboard**: Platform owner dashboard for campaign management
+- **Create Collection Page**: Multi-step form for creating fundraising collections
+- **Collections Page**: Detailed collection view with donation functionality
+- **Explore Page**: Browse and discover all collections with search and filtering
+- **Dashboard**: Collection creator dashboard to track performance and donations
+- **Admin Dashboard**: Platform owner dashboard for collection management
 - **Modern UI**: Beautiful glassmorphism design with animations
 - **Responsive Design**: Works perfectly on all devices
 - **Form Validation**: Step-by-step validation with character counting
-- **Image Upload**: Support for multiple campaign images
-- **Progress Tracking**: Visual progress indicator through campaign creation steps
+- **Image Upload**: Support for multiple collection images
+- **Progress Tracking**: Visual progress indicator through collection creation steps
 - **Donation System**: Interactive donation interface with social sharing
 
 ## Tech Stack
@@ -59,14 +59,14 @@ A modern, responsive fundraising platform built with Next.js 15 and Tailwind CSS
 crowdraise/
 ├── src/
 │   └── app/
-│       ├── create_campaign/
-│       │   └── page.tsx          # Create campaign form
-│       ├── campaign/
-│       │   └── page.tsx          # Individual campaign view
+│       ├── create_collection/
+│       │   └── page.tsx          # Create collection form
+│       ├── collection/
+│       │   └── page.tsx          # Individual collection view
 │       ├── explore/
-│       │   └── page.tsx          # Browse all campaigns
+│       │   └── page.tsx          # Browse all collections
 │       ├── dashboard/
-│       │   └── page.tsx          # Campaign creator dashboard
+│       │   └── page.tsx          # Collection creator dashboard
 │       ├── admin_dashboard/
 │       │   └── page.tsx          # Platform admin dashboard
 │       ├── globals.css           # Global styles and animations
@@ -77,12 +77,12 @@ crowdraise/
 
 ## Pages
 
-### Create Campaign Page (`/create_campaign`)
+### Create Collection Page (`/create_collection`)
 
-The create campaign page features:
+The create collection page features:
 
-1. **Step 1: Campaign Details**
-   - Campaign title (with character count)
+1. **Step 1: Collection Details**
+   - Collection title (with character count)
    - Category selection
    - Funding goal (with currency symbol)
    - Short description (with character count)
@@ -93,7 +93,7 @@ The create campaign page features:
    - Fund usage breakdown
 
 3. **Step 3: Review & Launch**
-   - Campaign preview
+   - Collection preview
    - Terms agreement
    - Launch button
 
@@ -102,24 +102,24 @@ The create campaign page features:
 - **Multi-step Navigation**: Progress indicator with step validation
 - **Form Validation**: Required field validation with visual feedback
 - **Character Counting**: Real-time character count with warning indicators
-- **Image Management**: Upload, preview, and remove campaign images
+- **Image Management**: Upload, preview, and remove collection images
 - **Responsive Design**: Mobile-first approach with Tailwind CSS
 - **Animations**: Smooth transitions and hover effects
 - **Glassmorphism UI**: Modern backdrop blur and transparency effects
 
-### Campaign Page (`/campaign/[id]`)
+### Collection Page (`/collection/[id]`)
 
-The individual campaign page displays a detailed view of a fundraising campaign with:
+The individual collection page displays a detailed view of a fundraising collection with:
 
-#### Campaign Information
-- **Campaign Header**: Title, category, creator, location, and creation date
+#### Collection Information
+- **Collection Header**: Title, category, creator, location, and creation date
 - **Image Gallery**: Main image with thumbnail navigation
-- **Campaign Story**: Detailed narrative about the campaign
+- **Collection Story**: Detailed narrative about the collection
 - **Fund Usage Breakdown**: How donations will be allocated
 
 #### Donation Interface
 - **Progress Tracking**: Visual progress bar showing raised vs. goal
-- **Campaign Stats**: Number of supporters and days remaining
+- **Collection Stats**: Number of supporters and days remaining
 - **Donation Options**: Pre-set amounts and custom input
 - **Donate Button**: Interactive donation processing
 - **Social Sharing**: Twitter, Facebook, WhatsApp, and link sharing
@@ -134,25 +134,25 @@ The individual campaign page displays a detailed view of a fundraising campaign 
 - **Interactive Gallery**: Click thumbnails to change main image
 - **Progress Animation**: Animated progress bar with shimmer effect
 - **Amount Selection**: Choose from preset amounts or enter custom
-- **Social Integration**: Share campaign across social platforms
+- **Social Integration**: Share collection across social platforms
 - **Responsive Layout**: Optimized for all screen sizes
 - **Glassmorphism Design**: Modern backdrop blur effects
 - **Smooth Animations**: Hover effects and transitions
 
 ### Explore Page (`/explore`)
 
-The explore page allows users to discover and browse all campaigns:
+The explore page allows users to discover and browse all collections:
 
 #### Search and Discovery
-- **Search Functionality**: Find campaigns by title, description, or creator
-- **Category Filtering**: Filter by campaign category
+- **Search Functionality**: Find collections by title, description, or creator
+- **Category Filtering**: Filter by collection category
 - **Sorting Options**: Sort by newest, most popular, ending soon, or highest goal
-- **Results Count**: Display number of campaigns found
+- **Results Count**: Display number of collections found
 
-#### Campaign Grid
-- **Campaign Cards**: Beautiful cards with campaign images and key information
+#### Collection Grid
+- **Collection Cards**: Beautiful cards with collection images and key information
 - **Status Indicators**: Visual status badges (active, completed, pending)
-- **Progress Bars**: Show fundraising progress for each campaign
+- **Progress Bars**: Show fundraising progress for each collection
 - **Quick Stats**: Raised amount, supporters, and days remaining
 
 #### Features
@@ -160,29 +160,29 @@ The explore page allows users to discover and browse all campaigns:
 - **Advanced Filtering**: Multiple filter combinations
 - **Responsive Grid**: Adapts to different screen sizes
 - **Interactive Cards**: Hover effects and smooth transitions
-- **Navigation**: Click cards to view individual campaigns
-- **Load More**: Pagination for large numbers of campaigns
+- **Navigation**: Click cards to view individual collections
+- **Load More**: Pagination for large numbers of collections
 
 ### Dashboard (`/dashboard`)
 
-The campaign creator dashboard provides comprehensive campaign management:
+The collection creator dashboard provides comprehensive collection management:
 
 #### Overview Tab
-- **Performance Metrics**: Total campaigns, active campaigns, total raised, supporters
+- **Performance Metrics**: Total collections, active collections, total raised, supporters
 - **Statistics Cards**: Visual representation of key metrics
-- **Quick Actions**: Create new campaign, export reports
-- **Recent Activity**: Latest donations and campaign updates
+- **Quick Actions**: Create new collection, export reports
+- **Recent Activity**: Latest donations and collection updates
 
-#### My Campaigns Tab
-- **Campaign List**: Grid view of all user campaigns
-- **Status Tracking**: Visual status indicators for each campaign
+#### My Collections Tab
+- **Collection List**: Grid view of all user collections
+- **Status Tracking**: Visual status indicators for each collection
 - **Progress Monitoring**: Real-time progress bars and statistics
-- **Campaign Actions**: View, edit, and manage campaigns
+- **Collection Actions**: View, edit, and manage collections
 
 #### Donations Tab
 - **Donation History**: Complete list of all donations received
 - **Donor Information**: Donor names, amounts, dates, and messages
-- **Campaign Mapping**: Link donations to specific campaigns
+- **Collection Mapping**: Link donations to specific collections
 - **Export Options**: Download donation reports
 
 #### Features
@@ -198,28 +198,28 @@ The campaign creator dashboard provides comprehensive campaign management:
 The platform owner dashboard for managing the entire platform:
 
 #### Overview Tab
-- **Platform Statistics**: Total campaigns, users, funds raised, platform fees
-- **Campaign Status Overview**: Pending, approved, and rejected campaign counts
-- **Quick Actions**: Review campaigns, export reports, access settings
+- **Platform Statistics**: Total collections, users, funds raised, platform fees
+- **Collection Status Overview**: Pending, approved, and rejected collection counts
+- **Quick Actions**: Review collections, export reports, access settings
 - **Performance Metrics**: Platform-wide statistics and insights
 
-#### Campaign Management
-- **Pending Review**: Campaigns awaiting approval with approve/reject actions
-- **Approved Campaigns**: Live campaigns with suspend options
-- **Rejected Campaigns**: Rejected campaigns with rejection reasons
-- **Search and Filter**: Find specific campaigns quickly
+#### Collection Management
+- **Pending Review**: Collections awaiting approval with approve/reject actions
+- **Approved Collections**: Live collections with suspend options
+- **Rejected Collections**: Rejected collections with rejection reasons
+- **Search and Filter**: Find specific collections quickly
 
-#### Campaign Actions
-- **Approve Campaigns**: One-click approval for pending campaigns
+#### Collection Actions
+- **Approve Collections**: One-click approval for pending collections
 - **Reject with Reason**: Provide detailed rejection feedback
-- **Suspend Campaigns**: Temporarily disable approved campaigns
-- **View Details**: Access complete campaign information
+- **Suspend Collections**: Temporarily disable approved collections
+- **View Details**: Access complete collection information
 
 #### Features
 
 - **Admin Controls**: Full platform management capabilities
-- **Status Tracking**: Monitor all campaign statuses
-- **Bulk Actions**: Efficient campaign processing
+- **Status Tracking**: Monitor all collection statuses
+- **Bulk Actions**: Efficient collection processing
 - **Audit Trail**: Track all admin actions
 - **Responsive Interface**: Mobile-friendly admin panel
 
@@ -236,22 +236,22 @@ The project uses Tailwind CSS v4 with custom CSS for:
 
 ## User Roles
 
-### Campaign Creators
-- Create and manage fundraising campaigns
+### Collection Creators
+- Create and manage fundraising collections
 - Track donations and supporter engagement
-- Monitor campaign performance metrics
+- Monitor collection performance metrics
 - Access personalized dashboard
 
 ### Platform Users
-- Browse and discover campaigns
+- Browse and discover collections
 - Make donations with various payment options
-- Share campaigns on social media
+- Share collections on social media
 - Track donation history
 
 ### Platform Admins
-- Review and approve/reject campaign submissions
+- Review and approve/reject collection submissions
 - Monitor platform performance and statistics
-- Manage user accounts and campaign statuses
+- Manage user accounts and collection statuses
 - Access comprehensive admin dashboard
 
 ## Browser Support

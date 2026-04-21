@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
-interface Campaign {
+interface Collection {
   id: string;
   type: 'fundraiser' | 'occasion' | 'tips';
   title: string;
@@ -19,8 +19,8 @@ interface Campaign {
 
 interface Donation {
   id: string;
-  campaignId: string;
-  campaignTitle: string;
+  collectionId: string;
+  collectionTitle: string;
   supporterName: string;
   amount: number;
   date: string;
@@ -28,8 +28,8 @@ interface Donation {
 }
 
 interface DashboardStats {
-  totalCampaigns: number;
-  activeCampaigns: number;
+  totalCollections: number;
+  activeCollections: number;
   totalRaised: number;
   totalSupporters: number;
   averageDonation: number;
@@ -37,23 +37,23 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [recentDonations, setRecentDonations] = useState<Donation[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
-    totalCampaigns: 0,
-    activeCampaigns: 0,
+    totalCollections: 0,
+    activeCollections: 0,
     totalRaised: 0,
     totalSupporters: 0,
     averageDonation: 0,
     completionRate: 0
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<'overview' | 'campaigns' | 'donations'>('overview');
+  const [selectedTab, setSelectedTab] = useState<'overview' | 'collections' | 'donations'>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const particlesRef = useRef<HTMLDivElement>(null);
 
   // Sample data
-  const sampleCampaigns: Campaign[] = [
+  const sampleCollections: Collection[] = [
     {
       id: '1',
       type: 'fundraiser',
@@ -98,8 +98,8 @@ export default function DashboardPage() {
   const sampleDonations: Donation[] = [
     {
       id: '1',
-      campaignId: '1',
-      campaignTitle: "Help Sarah Complete Her Medical School Journey",
+      collectionId: '1',
+      collectionTitle: "Help Sarah Complete Her Medical School Journey",
       supporterName: "Anonymous Supporter",
       amount: 15000,
       date: "2 hours ago",
@@ -107,8 +107,8 @@ export default function DashboardPage() {
     },
     {
       id: '2',
-      campaignId: '2',
-      campaignTitle: "Community Library Project",
+      collectionId: '2',
+      collectionTitle: "Community Library Project",
       supporterName: "Michael Johnson",
       amount: 25000,
       date: "5 hours ago",
@@ -116,16 +116,16 @@ export default function DashboardPage() {
     },
     {
       id: '3',
-      campaignId: '1',
-      campaignTitle: "Help Sarah Complete Her Medical School Journey",
+      collectionId: '1',
+      collectionTitle: "Help Sarah Complete Her Medical School Journey",
       supporterName: "Sarah Williams",
       amount: 10000,
       date: "1 day ago"
     },
     {
       id: '4',
-      campaignId: '3',
-      campaignTitle: "Local Artisan Support",
+      collectionId: '3',
+      collectionTitle: "Local Artisan Support",
       supporterName: "David Brown",
       amount: 50000,
       date: "2 days ago",
@@ -152,13 +152,13 @@ export default function DashboardPage() {
 
     // Simulate loading
     const timer = setTimeout(() => {
-      setCampaigns(sampleCampaigns);
+      setCollections(sampleCollections);
       setRecentDonations(sampleDonations);
       setStats({
-        totalCampaigns: sampleCampaigns.length,
-        activeCampaigns: sampleCampaigns.filter(c => c.status === 'active').length,
-        totalRaised: sampleCampaigns.reduce((sum, c) => sum + c.raised, 0),
-        totalSupporters: sampleCampaigns.reduce((sum, c) => sum + c.supporters, 0),
+        totalCollections: sampleCollections.length,
+        activeCollections: sampleCollections.filter(c => c.status === 'active').length,
+        totalRaised: sampleCollections.reduce((sum, c) => sum + c.raised, 0),
+        totalSupporters: sampleCollections.reduce((sum, c) => sum + c.supporters, 0),
         averageDonation: 25000,
         completionRate: 85
       });
@@ -229,12 +229,12 @@ export default function DashboardPage() {
             <div className="flex flex-wrap gap-2 sm:gap-4">
               {[
                 { id: 'overview', label: 'Overview', icon: 'fas fa-chart-line' },
-                { id: 'campaigns', label: 'Collections', icon: 'fas fa-bullhorn' },
+                { id: 'collections', label: 'Collections', icon: 'fas fa-bullhorn' },
                 { id: 'donations', label: 'Contributions', icon: 'fas fa-heart' }
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setSelectedTab(tab.id as "overview" | "campaigns" | "donations")}
+                  onClick={() => setSelectedTab(tab.id as "overview" | "collections" | "donations")}
                   className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base font-medium transition-all duration-300 ${
                     selectedTab === tab.id
                       ? 'bg-gradient-to-r from-red-400 to-cyan-400 text-white shadow-lg'
@@ -254,8 +254,8 @@ export default function DashboardPage() {
               {/* Stats Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {[
-                  { label: 'Total Collections', value: stats.totalCampaigns, icon: 'fas fa-bullhorn', color: 'from-blue-400 to-cyan-400' },
-                  { label: 'Active Collections', value: stats.activeCampaigns, icon: 'fas fa-play-circle', color: 'from-green-400 to-emerald-400' },
+                  { label: 'Total Collections', value: stats.totalCollections, icon: 'fas fa-bullhorn', color: 'from-blue-400 to-cyan-400' },
+                  { label: 'Active Collections', value: stats.activeCollections, icon: 'fas fa-play-circle', color: 'from-green-400 to-emerald-400' },
                   { label: 'Total Raised', value: `₦${stats.totalRaised.toLocaleString()}`, icon: 'fas fa-money-bill-wave', color: 'from-yellow-400 to-orange-400' },
                   { label: 'Total Supporters', value: stats.totalSupporters, icon: 'fas fa-users', color: 'from-purple-400 to-pink-400' },
                   { label: 'Avg. Contribution', value: `₦${stats.averageDonation.toLocaleString()}`, icon: 'fas fa-chart-bar', color: 'from-indigo-400 to-blue-400' },
@@ -277,30 +277,30 @@ export default function DashboardPage() {
 
               {/* Recent Activity */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-                {/* Recent Campaigns */}
+                {/* Recent Collections */}
                 <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
                   <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-3">
                     <i className="fas fa-bullhorn text-cyan-400"></i>
                     Recent Collections
                   </h3>
                   <div className="space-y-3 sm:space-y-4">
-                    {campaigns.slice(0, 3).map((campaign) => (
-                      <div key={campaign.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
-                        <img src={campaign.image} alt={campaign.title} className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover" />
+                    {collections.slice(0, 3).map((collection) => (
+                      <div key={collection.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
+                        <img src={collection.image} alt={collection.title} className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover" />
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-white font-medium text-sm sm:text-base truncate">{campaign.title}</h4>
+                          <h4 className="text-white font-medium text-sm sm:text-base truncate">{collection.title}</h4>
                           <div className="flex items-center gap-2 text-xs sm:text-sm text-white/60">
-                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(campaign.status)}`}>
-                              {getStatusText(campaign.status)}
+                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(collection.status)}`}>
+                              {getStatusText(collection.status)}
                             </span>
-                            <span>₦{campaign.raised.toLocaleString()} raised</span>
+                            <span>₦{collection.raised.toLocaleString()} raised</span>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
                   <div className="mt-4 sm:mt-6 text-center">
-                    <Link href="/create_campaign" className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-400 to-cyan-400 text-white rounded-full text-sm sm:text-base font-medium hover:-translate-y-1 transition-all duration-300">
+                    <Link href="/create_collection" className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-400 to-cyan-400 text-white rounded-full text-sm sm:text-base font-medium hover:-translate-y-1 transition-all duration-300">
                       <i className="fas fa-plus"></i>
                       Create New Collection
                     </Link>
@@ -321,7 +321,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-white font-medium text-sm sm:text-base">{donation.supporterName}</div>
-                          <div className="text-white/60 text-xs sm:text-sm truncate">{donation.campaignTitle}</div>
+                          <div className="text-white/60 text-xs sm:text-sm truncate">{donation.collectionTitle}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-cyan-400 font-semibold text-sm sm:text-base">₦{donation.amount.toLocaleString()}</div>
@@ -335,48 +335,48 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Campaigns Tab */}
-          {selectedTab === 'campaigns' && (
+          {/* Collections Tab */}
+          {selectedTab === 'collections' && (
             <div className="space-y-6 sm:space-y-8">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl sm:text-3xl font-bold text-white">Your Collections</h2>
-                <Link href="/create_campaign" className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-400 to-cyan-400 text-white rounded-full text-sm sm:text-base font-medium hover:-translate-y-1 transition-all duration-300">
+                <Link href="/create_collection" className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-400 to-cyan-400 text-white rounded-full text-sm sm:text-base font-medium hover:-translate-y-1 transition-all duration-300">
                   <i className="fas fa-plus"></i>
                   <span className="hidden sm:inline">Create Collection</span>
                 </Link>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-                {campaigns.map((campaign) => (
-                  <div key={campaign.id} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
-                    <img src={campaign.image} alt={campaign.title} className="w-full h-32 sm:h-40 object-cover" />
+                {collections.map((collection) => (
+                  <div key={collection.id} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
+                    <img src={collection.image} alt={collection.title} className="w-full h-32 sm:h-40 object-cover" />
                     <div className="p-4 sm:p-6">
                       <div className="flex items-center justify-between mb-2">
-                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(campaign.status)}`}>
-                          {getStatusText(campaign.status)}
+                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(collection.status)}`}>
+                          {getStatusText(collection.status)}
                         </span>
-                        <span className="text-white/60 text-xs">{campaign.daysLeft} days left</span>
+                        <span className="text-white/60 text-xs">{collection.daysLeft} days left</span>
                       </div>
-                      <h3 className="text-white font-semibold text-base sm:text-lg mb-2 line-clamp-2">{campaign.title}</h3>
-                      <p className="text-white/60 text-sm mb-4">{campaign.category}</p>
+                      <h3 className="text-white font-semibold text-base sm:text-lg mb-2 line-clamp-2">{collection.title}</h3>
+                      <p className="text-white/60 text-sm mb-4">{collection.category}</p>
                       
                       <div className="space-y-3">
                         <div className="flex justify-between text-sm">
                           <span className="text-white/70">Goal:</span>
-                          <span className="text-white font-medium">₦{campaign.goal.toLocaleString()}</span>
+                          <span className="text-white font-medium">₦{collection.goal.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-white/70">Raised:</span>
-                          <span className="text-cyan-400 font-semibold">₦{campaign.raised.toLocaleString()}</span>
+                          <span className="text-cyan-400 font-semibold">₦{collection.raised.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-white/70">Supporters:</span>
-                          <span className="text-white font-medium">{campaign.supporters}</span>
+                          <span className="text-white font-medium">{collection.supporters}</span>
                         </div>
                       </div>
 
                       <div className="mt-4 sm:mt-6 flex gap-2">
-                        <Link href={`/campaign/${campaign.id}`} className="flex-1 px-4 py-2 bg-white/10 text-white text-center rounded-lg text-sm hover:bg-white/20 transition-colors">
+                        <Link href={`/collection/${collection.id}`} className="flex-1 px-4 py-2 bg-white/10 text-white text-center rounded-lg text-sm hover:bg-white/20 transition-colors">
                           View
                         </Link>
                         <button className="px-4 py-2 bg-cyan-400/20 text-cyan-400 rounded-lg text-sm hover:bg-cyan-400/30 transition-colors">
@@ -401,7 +401,7 @@ export default function DashboardPage() {
                     <thead className="bg-white/5">
                       <tr>
                         <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Supporter</th>
-                        <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Campaign</th>
+                        <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Collection</th>
                         <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Amount</th>
                         <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Date</th>
                         <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-medium text-white/70 uppercase tracking-wider">Message</th>
@@ -421,7 +421,7 @@ export default function DashboardPage() {
                             </div>
                           </td>
                           <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                            <div className="text-sm sm:text-base text-white/80 max-w-xs truncate">{donation.campaignTitle}</div>
+                            <div className="text-sm sm:text-base text-white/80 max-w-xs truncate">{donation.collectionTitle}</div>
                           </td>
                           <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                             <div className="text-sm sm:text-base font-semibold text-cyan-400">₦{donation.amount.toLocaleString()}</div>

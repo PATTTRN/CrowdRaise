@@ -4,7 +4,7 @@ import React, { useState } from "react";
 
 const NAV_ITEMS = [
   { href: "/explore", label: "Explore Collections" },
-  { href: "/create_campaign", label: "Create Collection" },
+  { href: "/create_collection", label: "Create Collection" },
   { href: "/dashboard", label: "Dashboard" },
 ];
 
