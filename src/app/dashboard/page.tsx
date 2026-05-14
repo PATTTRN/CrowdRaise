@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { collectionService, contributionService, withdrawalService } from '@/services';
+import { useAuthStore } from '@/store/authStore';
+import { toast } from 'sonner';
 
 interface Collection {
   id: string;
@@ -37,8 +40,9 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [recentDonations, setRecentDonations] = useState<Donation[]>([]);
+  const { user, isAuthenticated } = useAuthStore();
+  const [collections, setCollections] = useState<any[]>([]);
+  const [recentDonations, setRecentDonations] = useState<any[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalCollections: 0,
     activeCollections: 0,
@@ -48,93 +52,152 @@ export default function DashboardPage() {
     completionRate: 0
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<'overview' | 'collections' | 'donations'>('overview');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [selectedTab, setSelectedTab] = useState<'overview' | 'collections' | 'donations' | 'withdraw'>('overview');
   const particlesRef = useRef<HTMLDivElement>(null);
 
-  // Sample data
-  const sampleCollections: Collection[] = [
-    {
-      id: '1',
-      type: 'fundraiser',
-      title: "Help Sarah Complete Her Medical School Journey",
-      category: "Medical & Healthcare",
-      goal: 650000,
-      raised: 485000,
-      supporters: 142,
-      daysLeft: 28,
-      status: 'active',
-      image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      createdAt: "2024-01-15"
-    },
-    {
-      id: '2',
-      type: 'fundraiser',
-      title: "Community Library Project",
-      category: "Education",
-      goal: 1200000,
-      raised: 890000,
-      supporters: 89,
-      daysLeft: 45,
-      status: 'active',
-      image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      createdAt: "2024-01-10"
-    },
-    {
-      id: '3',
-      type: 'occasion',
-      title: "Local Artisan Support",
-      category: "Community & Social",
-      goal: 800000,
-      raised: 650000,
-      supporters: 78,
-      daysLeft: 35,
-      status: 'active',
-      image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      createdAt: "2024-01-05"
-    }
-  ];
+  // ── Withdraw tab state ──────────────────────────────────────────────────
+  const [banks, setBanks] = useState<{ name: string; code: string }[]>([]);
+  const [accountNumber, setAccountNumber] = useState('');
+  const [selectedBankCode, setSelectedBankCode] = useState('');
+  const [selectedBankName, setSelectedBankName] = useState('');
+  const [resolvedAccountName, setResolvedAccountName] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isSavingBank, setIsSavingBank] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [balance, setBalance] = useState({ totalGross: 0, totalFees: 0, totalEarned: 0, totalPaid: 0, pendingAmount: 0, available: 0 });
+  const [withdrawHistory, setWithdrawHistory] = useState<any[]>([]);
 
-  const sampleDonations: Donation[] = [
-    {
-      id: '1',
-      collectionId: '1',
-      collectionTitle: "Help Sarah Complete Her Medical School Journey",
-      supporterName: "Anonymous Supporter",
-      amount: 15000,
-      date: "2 hours ago",
-      message: "Keep going Sarah! You're almost there!"
-    },
-    {
-      id: '2',
-      collectionId: '2',
-      collectionTitle: "Community Library Project",
-      supporterName: "Michael Johnson",
-      amount: 25000,
-      date: "5 hours ago",
-      message: "Education is the key to success"
-    },
-    {
-      id: '3',
-      collectionId: '1',
-      collectionTitle: "Help Sarah Complete Her Medical School Journey",
-      supporterName: "Sarah Williams",
-      amount: 10000,
-      date: "1 day ago"
-    },
-    {
-      id: '4',
-      collectionId: '3',
-      collectionTitle: "Local Artisan Support",
-      supporterName: "David Brown",
-      amount: 50000,
-      date: "2 days ago",
-      message: "Supporting local businesses is important"
+  const fetchDashboardData = async () => {
+    if (!user) return;
+    try {
+      // 1. Get my collections
+      const myCollections = await collectionService.getAllCollections({ creator: user._id });
+      setCollections(myCollections.data);
+
+      // 2. Get contributions for all collections (per collection)
+      const allDonations: any[] = [];
+      let totalRaised = 0;
+      let totalSupporters = 0;
+      let activeCount = 0;
+
+      for (const col of myCollections.data) {
+        totalRaised += col.raised;
+        totalSupporters += col.supporters;
+        if (col.status === 'active') activeCount++;
+        
+        try {
+          const res = await contributionService.getCollectionContributions(col._id);
+          allDonations.push(...res.data);
+        } catch (e) {
+          console.error('Failed to fetch contributions for', col._id);
+        }
+      }
+
+      // Sort donations by date
+      allDonations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setRecentDonations(allDonations);
+
+      setStats({
+        totalCollections: myCollections.data.length,
+        activeCollections: activeCount,
+        totalRaised,
+        totalSupporters,
+        averageDonation: totalSupporters > 0 ? Math.round(totalRaised / totalSupporters) : 0,
+        completionRate: myCollections.data.length > 0 ? Math.round((activeCount / myCollections.data.length) * 100) : 0
+      });
+    } catch (error: any) {
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
+
+  const handleDeleteCollection = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this collection? This action is permanent.')) return;
+    try {
+      setIsProcessing(id);
+      await collectionService.deleteCollection(id);
+      toast.success('Collection deleted');
+      fetchDashboardData(); // Refresh list
+    } catch (error) {
+      toast.error('Failed to delete collection');
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const loadWithdrawData = async () => {
+    try {
+      const [balanceData, historyData, banksData] = await Promise.all([
+        withdrawalService.getBalance(),
+        withdrawalService.getMyWithdrawals(),
+        withdrawalService.getBanks(),
+      ]);
+      setBalance(balanceData);
+      setWithdrawHistory(historyData.data);
+      setBanks(banksData.data.map((b: any) => ({ name: b.name, code: b.code })));
+    } catch {
+      toast.error('Failed to load withdrawal data');
+    }
+  };
+
+  const handleVerifyAccount = async () => {
+    if (!accountNumber || !selectedBankCode) { toast.error('Enter account number and select a bank'); return; }
+    setIsVerifying(true);
+    try {
+      const result = await withdrawalService.verifyAccount(accountNumber, selectedBankCode);
+      setResolvedAccountName(result.accountName);
+      toast.success(`Verified: ${result.accountName}`);
+    } catch { toast.error('Could not verify account. Check the number and bank.'); setResolvedAccountName(''); }
+    finally { setIsVerifying(false); }
+  };
+
+  const handleSaveBankDetails = async () => {
+    if (!resolvedAccountName) { toast.error('Verify your account first'); return; }
+    setIsSavingBank(true);
+    try {
+      await withdrawalService.saveBankDetails({ accountNumber, bankCode: selectedBankCode, accountName: resolvedAccountName, bankName: selectedBankName });
+      toast.success('Bank details saved!');
+    } catch { toast.error('Failed to save bank details'); }
+    finally { setIsSavingBank(false); }
+  };
+
+  const handleRequestWithdrawal = async () => {
+    const amt = parseFloat(withdrawAmount);
+    if (isNaN(amt) || amt < 1000) { toast.error('Minimum withdrawal is ₦1,000'); return; }
+    if (amt > balance.available) { toast.error(`Only ₦${balance.available.toLocaleString()} available`); return; }
+    setIsRequesting(true);
+    try {
+      await withdrawalService.requestWithdrawal(amt);
+      toast.success('Withdrawal request submitted! Processing in 1–3 business days.');
+      setWithdrawAmount('');
+      loadWithdrawData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.response?.data?.error || 'Request failed');
+    } finally { setIsRequesting(false); }
+  };
+
+  const withdrawalStatusStyle = (s: string) => ({
+    pending: 'text-yellow-400 bg-yellow-400/10',
+    approved: 'text-blue-400 bg-blue-400/10',
+    processing: 'text-cyan-400 bg-cyan-400/10',
+    completed: 'text-green-400 bg-green-400/10',
+    rejected: 'text-red-400 bg-red-400/10',
+  }[s] ?? 'text-white/60 bg-white/5');
 
   useEffect(() => {
-    // Create floating particles
+    if (selectedTab === 'withdraw' && isAuthenticated) loadWithdrawData();
+  }, [selectedTab]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchDashboardData();
+    } else {
+      setIsLoading(false);
+    }
+
     if (particlesRef.current) {
       const container = particlesRef.current;
       const particleCount = 30;
@@ -149,24 +212,40 @@ export default function DashboardPage() {
         container.appendChild(particle);
       }
     }
+  }, [isAuthenticated]);
 
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setCollections(sampleCollections);
-      setRecentDonations(sampleDonations);
-      setStats({
-        totalCollections: sampleCollections.length,
-        activeCollections: sampleCollections.filter(c => c.status === 'active').length,
-        totalRaised: sampleCollections.reduce((sum, c) => sum + c.raised, 0),
-        totalSupporters: sampleCollections.reduce((sum, c) => sum + c.supporters, 0),
-        averageDonation: 25000,
-        completionRate: 85
-      });
-      setIsLoading(false);
-    }, 1000);
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black px-4 pt-20">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-10 max-w-md text-center shadow-2xl">
+          <div className="text-6xl mb-6">📊</div>
+          <h2 className="text-3xl font-bold text-white mb-4">Your Dashboard</h2>
+          <p className="text-white/60 mb-8 leading-relaxed">
+            Please log in to view your collections, track contributions, and manage your account.
+          </p>
+          <button 
+            onClick={() => window.dispatchEvent(new CustomEvent('open-auth-modal'))}
+            className="w-full py-4 rounded-full font-bold text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer"
+            style={{ background: 'linear-gradient(135deg, #f43f5e, #fb923c)' }}
+          >
+            Access Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-    return () => clearTimeout(timer);
-  }, []);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-pink-500 mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -188,9 +267,9 @@ export default function DashboardPage() {
     }
   };
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
+  // const toggleMobileMenu = () => {
+  //   setIsMobileMenuOpen(!isMobileMenuOpen);
+  // };
 
   if (isLoading) {
     return (
@@ -216,12 +295,25 @@ export default function DashboardPage() {
           
           {/* Header */}
           <div className="mb-8 sm:mb-12">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4">
-              Dashboard
-            </h1>
-            <p className="text-white/80 text-base sm:text-lg">
-              Welcome back! Here&apos;s an overview of your collections and supporter activity.
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4">
+                  Dashboard
+                </h1>
+                <p className="text-white/80 text-base sm:text-lg">
+                  Welcome back! Here&apos;s an overview of your collections and supporter activity.
+                </p>
+              </div>
+              {user?.role === 'admin' && (
+                <Link 
+                  href="/admin_dashboard" 
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-white font-bold transition-all shadow-xl hover:-translate-y-1"
+                >
+                  <i className="fas fa-shield-alt text-cyan-400"></i>
+                  Admin Panel
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* Tab Navigation */}
@@ -230,12 +322,13 @@ export default function DashboardPage() {
               {[
                 { id: 'overview', label: 'Overview', icon: 'fas fa-chart-line' },
                 { id: 'collections', label: 'Collections', icon: 'fas fa-bullhorn' },
-                { id: 'donations', label: 'Contributions', icon: 'fas fa-heart' }
+                { id: 'donations', label: 'Contributions', icon: 'fas fa-heart' },
+                { id: 'withdraw', label: 'Withdraw', icon: 'fas fa-wallet' }
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setSelectedTab(tab.id as "overview" | "collections" | "donations")}
-                  className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base font-medium transition-all duration-300 ${
+                  className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base font-medium transition-all duration-300 cursor-pointer ${
                     selectedTab === tab.id
                       ? 'bg-gradient-to-r from-red-400 to-cyan-400 text-white shadow-lg'
                       : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
@@ -284,20 +377,23 @@ export default function DashboardPage() {
                     Recent Collections
                   </h3>
                   <div className="space-y-3 sm:space-y-4">
-                    {collections.slice(0, 3).map((collection) => (
-                      <div key={collection.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
-                        <img src={collection.image} alt={collection.title} className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover" />
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-white font-medium text-sm sm:text-base truncate">{collection.title}</h4>
-                          <div className="flex items-center gap-2 text-xs sm:text-sm text-white/60">
-                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(collection.status)}`}>
-                              {getStatusText(collection.status)}
-                            </span>
-                            <span>₦{collection.raised.toLocaleString()} raised</span>
+                    {collections.slice(0, 3).map((collection) => {
+                      const imageUrl = collection.primaryImage?.url || collection.images?.[0]?.url || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80';
+                      return (
+                        <div key={collection._id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
+                          <img src={imageUrl} alt={collection.title} className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover" />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-white font-medium text-sm sm:text-base truncate">{collection.title}</h4>
+                            <div className="flex items-center gap-2 text-xs sm:text-sm text-white/60">
+                              <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(collection.status)}`}>
+                                {getStatusText(collection.status)}
+                              </span>
+                              <span>₦{collection.raised.toLocaleString()} raised</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   <div className="mt-4 sm:mt-6 text-center">
                     <Link href="/create_collection" className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-400 to-cyan-400 text-white rounded-full text-sm sm:text-base font-medium hover:-translate-y-1 transition-all duration-300">
@@ -315,17 +411,17 @@ export default function DashboardPage() {
                   </h3>
                   <div className="space-y-3 sm:space-y-4">
                     {recentDonations.slice(0, 4).map((donation) => (
-                      <div key={donation.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
+                      <div key={donation._id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-red-400 to-cyan-400 flex items-center justify-center text-white font-semibold text-sm sm:text-base">
-                          {donation.supporterName.charAt(0)}
+                          {(donation.supporterName || 'A').charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-white font-medium text-sm sm:text-base">{donation.supporterName}</div>
+                          <div className="text-white font-medium text-sm sm:text-base">{donation.supporterName || 'Anonymous'}</div>
                           <div className="text-white/60 text-xs sm:text-sm truncate">{donation.collectionTitle}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-cyan-400 font-semibold text-sm sm:text-base">₦{donation.amount.toLocaleString()}</div>
-                          <div className="text-white/50 text-xs">{donation.date}</div>
+                          <div className="text-white/50 text-xs">{new Date(donation.createdAt).toLocaleDateString()}</div>
                         </div>
                       </div>
                     ))}
@@ -347,45 +443,55 @@ export default function DashboardPage() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-                {collections.map((collection) => (
-                  <div key={collection.id} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
-                    <img src={collection.image} alt={collection.title} className="w-full h-32 sm:h-40 object-cover" />
-                    <div className="p-4 sm:p-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(collection.status)}`}>
-                          {getStatusText(collection.status)}
-                        </span>
-                        <span className="text-white/60 text-xs">{collection.daysLeft} days left</span>
-                      </div>
-                      <h3 className="text-white font-semibold text-base sm:text-lg mb-2 line-clamp-2">{collection.title}</h3>
-                      <p className="text-white/60 text-sm mb-4">{collection.category}</p>
-                      
-                      <div className="space-y-3">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Goal:</span>
-                          <span className="text-white font-medium">₦{collection.goal.toLocaleString()}</span>
+                {collections.map((collection) => {
+                  const imageUrl = collection.primaryImage?.url || collection.images?.[0]?.url || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80';
+                  return (
+                    <div key={collection._id} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
+                      <img src={imageUrl} alt={collection.title} className="w-full h-32 sm:h-40 object-cover" />
+                      <div className="p-4 sm:p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(collection.status)}`}>
+                            {getStatusText(collection.status)}
+                          </span>
+                          <span className="text-white/60 text-xs">{collection.daysLeft || 0} days left</span>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Raised:</span>
-                          <span className="text-cyan-400 font-semibold">₦{collection.raised.toLocaleString()}</span>
+                        <h3 className="text-white font-semibold text-base sm:text-lg mb-2 line-clamp-2">{collection.title}</h3>
+                        <p className="text-white/60 text-sm mb-4">{collection.category}</p>
+                        
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/70">Goal:</span>
+                            <span className="text-white font-medium">₦{collection.goal.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/70">Raised:</span>
+                            <span className="text-cyan-400 font-semibold">₦{collection.raised.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/70">Supporters:</span>
+                            <span className="text-white font-medium">{collection.supporters}</span>
+                          </div>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Supporters:</span>
-                          <span className="text-white font-medium">{collection.supporters}</span>
-                        </div>
-                      </div>
 
-                      <div className="mt-4 sm:mt-6 flex gap-2">
-                        <Link href={`/collection/${collection.id}`} className="flex-1 px-4 py-2 bg-white/10 text-white text-center rounded-lg text-sm hover:bg-white/20 transition-colors">
-                          View
-                        </Link>
-                        <button className="px-4 py-2 bg-cyan-400/20 text-cyan-400 rounded-lg text-sm hover:bg-cyan-400/30 transition-colors">
-                          Edit
-                        </button>
+                        <div className="mt-4 sm:mt-6 flex gap-2">
+                          <Link href={`/collection_detail/${collection._id}`} className="flex-1 px-4 py-2 bg-white/10 text-white text-center rounded-lg text-sm hover:bg-white/20 transition-colors">
+                            View
+                          </Link>
+                          <Link href={`/edit_collection/${collection._id}`} className="px-4 py-2 bg-cyan-400/20 text-cyan-400 rounded-lg text-sm hover:bg-cyan-400/30 transition-colors">
+                            Edit
+                          </Link>
+                          <button 
+                            onClick={() => handleDeleteCollection(collection._id)}
+                            disabled={isProcessing === collection._id}
+                            className="px-4 py-2 bg-red-400/10 text-red-400 rounded-lg text-sm hover:bg-red-400/20 transition-colors disabled:opacity-50"
+                          >
+                            {isProcessing === collection._id ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-trash-alt"></i>}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -409,14 +515,14 @@ export default function DashboardPage() {
                     </thead>
                     <tbody className="divide-y divide-white/10">
                       {recentDonations.map((donation) => (
-                        <tr key={donation.id} className="hover:bg-white/5 transition-colors">
+                        <tr key={donation._id} className="hover:bg-white/5 transition-colors">
                           <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-red-400 to-cyan-400 flex items-center justify-center text-white font-semibold text-xs sm:text-sm">
-                                {donation.supporterName.charAt(0)}
+                                {(donation.supporterName || 'A').charAt(0)}
                               </div>
                               <div className="ml-3">
-                                <div className="text-sm sm:text-base font-medium text-white">{donation.supporterName}</div>
+                                <div className="text-sm sm:text-base font-medium text-white">{donation.supporterName || 'Anonymous'}</div>
                               </div>
                             </div>
                           </td>
@@ -427,7 +533,7 @@ export default function DashboardPage() {
                             <div className="text-sm sm:text-base font-semibold text-cyan-400">₦{donation.amount.toLocaleString()}</div>
                           </td>
                           <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                            <div className="text-sm text-white/60">{donation.date}</div>
+                            <div className="text-sm text-white/60">{new Date(donation.createdAt).toLocaleDateString()}</div>
                           </td>
                           <td className="px-4 sm:px-6 py-3 sm:py-4">
                             <div className="text-sm text-white/70 max-w-xs truncate">{donation.message || '-'}</div>
@@ -440,6 +546,214 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+
+          {/* Withdraw Tab */}
+          {selectedTab === 'withdraw' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">Withdraw Funds</h2>
+                <div className="px-4 py-2 bg-white/5 rounded-2xl border border-white/10 text-white/60 text-sm">
+                  <i className="fas fa-info-circle mr-2 text-cyan-400"></i>
+                  Withdrawals are processed within 1-3 business days
+                </div>
+              </div>
+
+              {/* Balance Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                {[
+                  { label: 'Gross Revenue', value: balance.totalGross, icon: 'fas fa-chart-line', color: 'from-blue-500/20 to-cyan-500/20', textColor: 'text-blue-400' },
+                  { label: 'Platform Fees', value: balance.totalFees, icon: 'fas fa-hand-holding-usd', color: 'from-red-500/20 to-orange-500/20', textColor: 'text-red-400' },
+                  { label: 'Net Earnings', value: balance.totalEarned, icon: 'fas fa-coins', color: 'from-indigo-500/20 to-purple-500/20', textColor: 'text-indigo-400' },
+                  { label: 'Total Paid', value: balance.totalPaid, icon: 'fas fa-check-circle', color: 'from-green-500/20 to-emerald-500/20', textColor: 'text-green-400' },
+                  { label: 'Available Now', value: balance.available, icon: 'fas fa-wallet', color: 'from-pink-500/20 to-rose-500/20', textColor: 'text-pink-400', highlight: true }
+                ].map((item, i) => (
+                  <div key={i} className={`p-6 rounded-3xl border transition-all duration-300 ${item.highlight ? 'border-pink-500/50 bg-pink-500/5 shadow-[0_0_20px_rgba(244,63,94,0.1)]' : 'border-white/10 bg-white/5'}`}>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className={`p-3 rounded-2xl bg-gradient-to-br ${item.color}`}>
+                        <i className={`${item.icon} ${item.textColor} text-xl`}></i>
+                      </div>
+                    </div>
+                    <div className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-1">{item.label}</div>
+                    <div className={`text-2xl font-bold ${item.textColor}`}>₦{item.value.toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left: Bank & Request Form */}
+                <div className="lg:col-span-1 space-y-6">
+                  {/* Bank Details Card */}
+                  <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
+                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                      <i className="fas fa-university text-cyan-400"></i>
+                      Payout Bank Account
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white/60 text-xs font-medium mb-1.5 block px-1">Select Bank</label>
+                        <select 
+                          value={selectedBankCode}
+                          onChange={(e) => {
+                            setSelectedBankCode(e.target.value);
+                            const bank = banks.find(b => b.code === e.target.value);
+                            if (bank) setSelectedBankName(bank.name);
+                            setResolvedAccountName(''); // Reset verification
+                          }}
+                          className="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/40 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
+                        >
+                          <option value="">Select a bank</option>
+                          {banks.map(bank => (
+                            <option key={bank.code} value={bank.code}>{bank.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-white/60 text-xs font-medium mb-1.5 block px-1">Account Number</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            maxLength={10}
+                            value={accountNumber}
+                            onChange={(e) => {
+                              setAccountNumber(e.target.value.replace(/\D/g, ''));
+                              setResolvedAccountName('');
+                            }}
+                            placeholder="0123456789"
+                            className="flex-1 px-4 py-3 rounded-xl border border-white/10 bg-black/40 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
+                          />
+                          <button 
+                            onClick={handleVerifyAccount}
+                            disabled={isVerifying || accountNumber.length !== 10 || !selectedBankCode}
+                            className="px-4 rounded-xl bg-white/10 text-white text-xs font-bold hover:bg-white/20 disabled:opacity-50 transition-all"
+                          >
+                            {isVerifying ? <i className="fas fa-spinner fa-spin"></i> : 'Verify'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {resolvedAccountName && (
+                        <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/20">
+                          <div className="text-green-400 text-[10px] font-bold uppercase tracking-widest mb-1">Account Name Found</div>
+                          <div className="text-white text-sm font-bold">{resolvedAccountName}</div>
+                        </div>
+                      )}
+
+                      <button 
+                        onClick={handleSaveBankDetails}
+                        disabled={isSavingBank || !resolvedAccountName}
+                        className="w-full py-3.5 rounded-xl bg-cyan-500 text-white font-bold text-sm shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:translate-y-0"
+                      >
+                        {isSavingBank ? <i className="fas fa-spinner fa-spin mr-2"></i> : null}
+                        Save Bank Details
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Request Withdrawal Card */}
+                  <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
+                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                      <i className="fas fa-paper-plane text-pink-400"></i>
+                      Request Payout
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white/60 text-xs font-medium mb-1.5 block px-1">Amount to Withdraw (₦)</label>
+                        <input 
+                          type="number" 
+                          value={withdrawAmount}
+                          onChange={(e) => setWithdrawAmount(e.target.value)}
+                          placeholder="e.g. 5000"
+                          className="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/40 text-white text-sm focus:outline-none focus:border-pink-500/50 transition-colors"
+                        />
+                        <div className="flex justify-between mt-2 px-1">
+                          <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider">Available: ₦{balance.available.toLocaleString()}</span>
+                          <button 
+                            onClick={() => setWithdrawAmount(balance.available.toString())}
+                            className="text-[10px] text-pink-400 font-bold uppercase hover:underline"
+                          >
+                            Withdraw All
+                          </button>
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={handleRequestWithdrawal}
+                        disabled={isRequesting || !withdrawAmount || parseFloat(withdrawAmount) < 1000}
+                        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-sm shadow-lg shadow-pink-500/20 hover:shadow-pink-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                      >
+                        {isRequesting ? <i className="fas fa-spinner fa-spin mr-2"></i> : null}
+                        Submit Request
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: History Table */}
+                <div className="lg:col-span-2">
+                  <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-xl">
+                    <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <i className="fas fa-history text-cyan-400"></i>
+                        Withdrawal History
+                      </h3>
+                      <button 
+                        onClick={loadWithdrawData}
+                        className="text-white/40 hover:text-white transition-colors"
+                      >
+                        <i className="fas fa-sync-alt"></i>
+                      </button>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-white/5">
+                          <tr>
+                            <th className="px-6 py-4 text-left text-[10px] font-bold text-white/40 uppercase tracking-widest">Date</th>
+                            <th className="px-6 py-4 text-left text-[10px] font-bold text-white/40 uppercase tracking-widest">Amount</th>
+                            <th className="px-6 py-4 text-left text-[10px] font-bold text-white/40 uppercase tracking-widest">Bank Details</th>
+                            <th className="px-6 py-4 text-left text-[10px] font-bold text-white/40 uppercase tracking-widest">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {withdrawHistory.length > 0 ? withdrawHistory.map((item) => (
+                            <tr key={item._id} className="hover:bg-white/5 transition-colors">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-white text-sm font-medium">{new Date(item.createdAt).toLocaleDateString()}</div>
+                                <div className="text-white/30 text-[10px]">{new Date(item.createdAt).toLocaleTimeString()}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-white font-bold">₦{item.amount.toLocaleString()}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-white/80 text-sm font-medium">{item.bankDetails.bankName}</div>
+                                <div className="text-white/40 text-[10px]">{item.bankDetails.accountNumber} • {item.bankDetails.accountName}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${withdrawalStatusStyle(item.status)}`}>
+                                  {item.status}
+                                </span>
+                              </td>
+                            </tr>
+                          )) : (
+                            <tr>
+                              <td colSpan={4} className="px-6 py-12 text-center">
+                                <div className="text-4xl mb-4 opacity-20">💸</div>
+                                <div className="text-white/30 text-sm">No withdrawal history yet.</div>
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </>

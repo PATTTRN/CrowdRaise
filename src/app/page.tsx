@@ -12,13 +12,13 @@ const HERO_STATS = [
 const COLLECTION_TYPES = [
   {
     id: "fundraiser",
-    emoji: "🌟",
+    emoji: "",
     label: "Fundraiser",
     tagline: "Rally support for your cause",
     description:
       "Medical bills, education, emergencies, community projects — bring your cause to life with a collection page that moves people.",
-    color: "#f43f5e",
-    gradient: "linear-gradient(135deg, #f43f5e, #fb923c)",
+    color: "rgb(219, 66, 201)",
+    gradient: "linear-gradient(90deg,rgb(151, 58, 73),rgb(219, 66, 201))",
     bgAccent: "rgba(244,63,94,0.10)",
     borderAccent: "rgba(244,63,94,0.28)",
     examples: [
@@ -32,7 +32,7 @@ const COLLECTION_TYPES = [
   },
   {
     id: "occasion",
-    emoji: "🎉",
+    emoji: "",
     label: "Occasion Gifts",
     tagline: "Make celebrations unforgettable",
     description:
@@ -52,7 +52,7 @@ const COLLECTION_TYPES = [
   },
   {
     id: "tips",
-    emoji: "💸",
+    emoji: "",
     label: "Tips & Show Love",
     tagline: "Let fans support your hustle",
     description:
@@ -76,7 +76,7 @@ const COLLECTION_TYPES = [
 const MOCKUP_CARDS = [
   {
     type: "fundraiser",
-    label: "Fundraiser 🌟",
+    label: "Fundraiser",
     title: "Help Sarah's Medical School",
     sub: "Medical & Healthcare · Lagos",
     raised: "₦485,000 raised",
@@ -91,7 +91,7 @@ const MOCKUP_CARDS = [
   },
   {
     type: "occasion",
-    label: "Occasion Gift 🎉",
+    label: "Occasion Gift",
     title: "Tobi & Chisom's Wedding",
     sub: "Wedding · Lagos",
     raised: "₦320,000 gifted",
@@ -106,7 +106,7 @@ const MOCKUP_CARDS = [
   },
   {
     type: "tips",
-    label: "Tips Page 💸",
+    label: "Tips Page",
     title: "Support DJ Kemi",
     sub: "Music & Entertainment · Abuja",
     raised: "₦95,000 received",
@@ -158,7 +158,7 @@ function animateCounter(
   target: number,
   suffix: string,
   prefix = "",
-  duration = 2000
+  duration = 5000
 ) {
   const increment = target / (duration / 16);
   let current = 0;
@@ -182,7 +182,7 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(
       () => setActiveCard((p) => (p + 1) % MOCKUP_CARDS.length),
-      1600
+      3600
     );
     return () => clearInterval(interval);
   }, []);
@@ -216,7 +216,7 @@ const HomePage: React.FC = () => {
                       value,
                       suffix,
                       prefix || "",
-                      2000
+                      5000
                     ),
                   i * 200
                 );
@@ -672,14 +672,14 @@ const HomePage: React.FC = () => {
               },
               {
                 icon: "fas fa-lock",
-                color: "#f43f5e",
+                color: "#e27789ff",
                 title: "Secure & Transparent",
                 desc:
                   "Your collections and data are protected with industry-leading security.",
               },
               {
                 icon: "fas fa-globe-africa",
-                color: "#8b5cf6",
+                color: "#390f9cff",
                 title: "For Africa & Beyond",
                 desc:
                   "Designed for the unique needs of African communities, but open to the world.",
@@ -773,7 +773,7 @@ const HomePage: React.FC = () => {
             />
             <button
               type="submit"
-              className="btn-primary w-full font-semibold text-lg mt-2"
+              className="btn-primary w-full font-semibold text-lg mt-2 cursor-pointer"
             >
               Send Message
             </button>

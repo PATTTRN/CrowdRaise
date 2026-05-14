@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, use } from 'react';
+import { collectionService, contributionService } from '@/services';
+import { toast } from 'sonner';
+import PaystackPop from '@paystack/inline-js'
 
 // ─── Type configuration ────────────────────────────────────────────────────
 const TYPE_CONFIG = {
@@ -22,8 +25,8 @@ const TYPE_CONFIG = {
     shareMsg: 'Help us reach more donors!',
   },
   occasion: {
-    accentColor: '#8b5cf6',
-    accentGradient: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+    accentColor: '#180a3aff',
+    accentGradient: 'linear-gradient(135deg, #180a3aff, #ec4899)',
     bgAccent: 'rgba(139,92,246,0.12)',
     borderAccent: 'rgba(139,92,246,0.3)',
     label: 'Occasion Gift',
@@ -63,135 +66,84 @@ interface DonationItem {
   id: string;
   name: string;
   amount: number;
-  time: string;
-  avatar: string;
   message?: string;
+  createdAt: string;
 }
 
-// ─── Sample data ────────────────────────────────────────────────────────────
-// In real usage you'd pull this from your DB/API. The `type` field drives UI.
-const SAMPLE_CAMPAIGNS: Record<string, {
+interface CollectionDetail {
+  _id: string;
   type: CollectionType;
   title: string;
   category: string;
-  creator: string;
+  creator: { name: string; _id: string };
   location: string;
-  createdDate: string;
+  createdAt: string;
   goal: number;
   raised: number;
   supporters: number;
   daysLeft: number;
-  images: string[];
-  story: string[];
+  images: { url: string }[];
+  fullStory: string;
   fundUsage?: { description: string; amount: number }[];
-  occasionDate?: string;
-  occasionType?: string;
-  tipSuggestions?: number[];
-}> = {
-  '1': {
-    type: 'fundraiser',
-    title: 'Help Sarah Complete Her Medical School Journey',
-    category: 'Medical & Healthcare',
-    creator: 'Sarah Johnson',
-    location: 'Lagos, Nigeria',
-    createdDate: '5 days ago',
-    goal: 650000,
-    raised: 485000,
-    supporters: 142,
-    daysLeft: 28,
-    images: [
-      'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&q=80',
-      'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=200&q=80',
-      'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=200&q=80',
-    ],
-    story: [
-      "Hi, I'm Sarah Johnson — a 4th-year medical student at the University of Lagos. I've worked incredibly hard to get here, maintaining top grades while supporting myself through part-time work.",
-      "Unexpected family financial difficulties have put my final year at risk. I need help covering tuition, medical equipment, and examination costs. I'm just one year away from becoming a doctor.",
-      "Every contribution brings me closer to serving my community. I promise to pay this kindness forward by providing affordable healthcare to underserved communities once I graduate.",
-    ],
-    fundUsage: [
-      { description: 'Final year tuition fees', amount: 350000 },
-      { description: 'Medical equipment & textbooks', amount: 180000 },
-      { description: 'Professional examination fees', amount: 120000 },
-    ],
-  },
-  '2': {
-    type: 'occasion',
-    title: "Tobi & Chisom's Wedding Gift Collection 💍",
-    category: 'Wedding',
-    creator: 'Tobi Adeyemi',
-    location: 'Lagos, Nigeria',
-    createdDate: '2 weeks ago',
-    goal: 500000,
-    raised: 320000,
-    supporters: 67,
-    daysLeft: 14,
-    occasionDate: '15 March 2025',
-    occasionType: 'Wedding',
-    images: [
-      'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80',
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=200&q=80',
-      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=200&q=80',
-    ],
-    story: [
-      "We're so excited to be starting this new chapter together! After years of building our love story, our big day is finally here.",
-      "Rather than a traditional gift registry, we've set up this page for friends and family who'd like to contribute to our honeymoon, home setup, or simply send their love.",
-      "Whether it's ₦5,000 or ₦500,000, every gift carries your blessing for our new journey together. We are deeply grateful. 🙏❤️",
-    ],
-  },
-  '3': {
-    type: 'tips',
-    title: 'Support DJ Kemi – Show Love 🎶',
-    category: 'Music & Entertainment',
-    creator: 'Kemi Obi',
-    location: 'Abuja, Nigeria',
-    createdDate: '1 month ago',
-    goal: 200000,
-    raised: 95000,
-    supporters: 89,
-    daysLeft: 60,
-    tipSuggestions: [1000, 2500, 5000, 10000],
-    images: [
-      'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80',
-      'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80',
-      'https://images.unsplash.com/photo-1571266028243-d220c6a9570a?w=200&q=80',
-    ],
-    story: [
-      "Hey! I'm DJ Kemi — Abuja's favourite party DJ 🎧 I've been spinning at events across Nigeria for 5 years, bringing energy to every room I enter.",
-      "I run free weekly sets on Instagram every Friday night, and my mixes are free for everyone to download. If my music has ever made your day better, this is your chance to say thank you!",
-      "Your support helps me invest in better equipment, keep the free content going, and book more gigs. Every tip, big or small, makes a real difference. Thank you for the love! 🙏",
-    ],
-  },
-};
+  eventDate?: string;
+  suggestedAmounts?: number[];
+}
 
-const RECENT_DONATIONS: DonationItem[] = [
-  { id: '1', name: 'Anonymous', amount: 15000, time: '2 hours ago', avatar: 'AO', message: 'Keep going! 💪' },
-  { id: '2', name: 'Michael Johnson', amount: 25000, time: '5 hours ago', avatar: 'MJ' },
-  { id: '3', name: 'Sarah Williams', amount: 10000, time: '1 day ago', avatar: 'SW', message: 'Rooting for you!' },
-  { id: '4', name: 'David Brown', amount: 50000, time: '2 days ago', avatar: 'DB' },
-];
+// Correct Contribution Type Definition
+interface Contribution {
+  _id: string;
+  supporterName?: string;
+  supporterEmail?: string;
+  amount: number;
+  message?: string;
+  createdAt: string;
+}
 
-// ─── Component ──────────────────────────────────────────────────────────────
-export default function CampaignPage({ params }: { params: { id: string } }) {
-  // Default to campaign '1' for demo; in real app use params.id
-  const campaignId = params?.id || '1';
-  const campaign = SAMPLE_CAMPAIGNS[campaignId] || SAMPLE_CAMPAIGNS['1'];
-  const config = TYPE_CONFIG[campaign.type];
-
+export default function CampaignPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const [campaign, setCampaign] = useState<CollectionDetail | null>(null);
+  const [contributions, setContributions] = useState<Contribution[]>([]);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [isDonating, setIsDonating] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [progressWidth, setProgressWidth] = useState(0);
-  const [tipperName, setTipperName] = useState('');
-  const [tipMessage, setTipMessage] = useState('');
+  const [supporterName, setSupporterName] = useState('');
+  const [supporterEmail, setSupporterEmail] = useState('');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [showSuccess, setShowSuccess] = useState(false);
   const particlesRef = useRef<HTMLDivElement>(null);
 
-  const donationAmounts = campaign.tipSuggestions || [5000, 10000, 25000, 50000];
-  const progressPct = Math.min((campaign.raised / campaign.goal) * 100, 100);
+  const fetchDetails = async () => {
+    setIsLoading(true);
+    try {
+      const [details, contribs] = await Promise.all([
+        collectionService.getCollectionById(id),
+        contributionService.getCollectionContributions(id)
+      ]);
+      setCampaign(details);
+      setContributions(contribs.data);
+      const pct = details.goal ? Math.min((details.raised / details.goal) * 100, 100) : 100;
+      setTimeout(() => setProgressWidth(pct), 500);
+    } catch (error: any) {
+      // Axios interceptor will handle 401s
+      if (error.response?.status !== 401) {
+        toast.error('Failed to load collection details');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
+    if (particlesRef.current) {
+      while (particlesRef.current.firstChild) {
+        particlesRef.current.removeChild(particlesRef.current.firstChild);
+      }
+    }
+    fetchDetails();
+
     if (particlesRef.current) {
       const container = particlesRef.current;
       for (let i = 0; i < 30; i++) {
@@ -204,27 +156,86 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
         container.appendChild(p);
       }
     }
-    const timer = setTimeout(() => setProgressWidth(progressPct), 500);
-    return () => clearTimeout(timer);
-  }, [progressPct]);
+  }, [id]);
 
-  const isDonateDisabled = () => !selectedAmount && !customAmount.trim();
+  if (isLoading || !campaign) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-pink-500"></div>
+      </div>
+    );
+  }
+
+  const config = TYPE_CONFIG[campaign.type];
+  const donationAmounts = campaign.suggestedAmounts && campaign.suggestedAmounts.length > 0
+    ? campaign.suggestedAmounts
+    : [1000, 2000, 5000, 10000];
 
   const handleDonate = async () => {
-    const amount = selectedAmount || parseInt(customAmount);
-    if (!amount) return;
+    const amount = selectedAmount ?? (customAmount ? parseInt(customAmount, 10) : null);
+
+    if (!amount || isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (!supporterEmail || !/^\S+@\S+\.\S+$/.test(supporterEmail)) {
+      toast.error('Email is required for receipt');
+      return;
+    }
+
     setIsDonating(true);
-    await new Promise(r => setTimeout(r, 2000));
-    setIsDonating(false);
-    setShowSuccess(true);
-    setSelectedAmount(null);
-    setCustomAmount('');
-    setTipperName('');
-    setTipMessage('');
-    setTimeout(() => setShowSuccess(false), 6000);
+
+    try {
+      toast.info('Initializing payment...');
+      const init = await contributionService.initializeContribution({
+        collectionId: campaign._id,
+        amount,
+        message: supportMessage,
+        supporterName: supporterName || 'Anonymous',
+        supporterEmail,
+        currency: 'NGN',
+      });
+
+      const contributionId: string = init.data._id;
+      const accessCode: string = init.access_code;
+
+      const popup = new PaystackPop();
+      popup.resumeTransaction(accessCode, {
+        onSuccess: async (_transaction: any) => {
+          try {
+            toast.info('Verifying payment...');
+            await contributionService.confirmContribution(contributionId);
+
+            toast.success(config.successMsg);
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 3500);
+            fetchDetails();
+            setSelectedAmount(null);
+            setCustomAmount('');
+            setSupportMessage('');
+            setSupporterName('');
+            setSupporterEmail('');
+          } catch (err) {
+            toast.error('Payment received but confirmation failed. Please contact support.');
+          } finally {
+            setIsDonating(false);
+          }
+        },
+        onCancel: () => {
+          setIsDonating(false);
+          toast.warning('Transaction cancelled');
+        },
+      });
+    } catch (error) {
+      toast.error('Could not initialize payment. Please try again.');
+      setIsDonating(false);
+    }
   };
 
   const share = (platform: string) => {
+    if (typeof window === 'undefined') return;
+
     const url = encodeURIComponent(window.location.href);
     const text = encodeURIComponent(`${campaign.title} on CrowdRaise`);
     const links: Record<string, string> = {
@@ -232,14 +243,12 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
       whatsapp: `https://wa.me/?text=${text}%20${url}`,
     };
-    if (links[platform]) window.open(links[platform], '_blank');
-    else navigator.clipboard.writeText(window.location.href);
+    if (links[platform]) window.open(links[platform], '_blank', 'noopener,noreferrer');
+    else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Link copied to clipboard!');
+    }
   };
-
-  // ── Occasion countdown ──
-  const daysLabel = campaign.type === 'occasion'
-    ? `${campaign.daysLeft} days to the celebration`
-    : `${campaign.daysLeft} days left`;
 
   return (
     <>
@@ -257,10 +266,10 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
             {config.label}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10 items-start">
 
             {/* ── LEFT: Content ── */}
-            <div className="space-y-8">
+            <div className="space-y-8 min-w-0">
 
               {/* Header */}
               <div>
@@ -274,7 +283,7 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span style={{ color: config.accentColor }}>▸</span>
-                    By {campaign.creator}
+                    By {campaign.creator.name}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span style={{ color: config.accentColor }}>▸</span>
@@ -282,11 +291,11 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span style={{ color: config.accentColor }}>▸</span>
-                    {campaign.createdDate}
+                    {new Date(campaign.createdAt).toLocaleDateString()}
                   </span>
-                  {campaign.occasionDate && (
+                  {campaign.eventDate && (
                     <span className="flex items-center gap-1.5 font-semibold" style={{ color: config.accentColor }}>
-                      🗓 {campaign.occasionDate}
+                      🗓 {new Date(campaign.eventDate).toLocaleDateString()}
                     </span>
                   )}
                 </div>
@@ -296,11 +305,14 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
               <div>
                 <div className="relative rounded-2xl overflow-hidden mb-3" style={{ borderColor: config.borderAccent, border: `1px solid ${config.borderAccent}` }}>
                   <img
-                    src={campaign.images[currentImageIndex]}
+                    src={
+                      Array.isArray(campaign.images) && campaign.images.length > 0 && campaign.images[currentImageIndex]?.url
+                        ? campaign.images[currentImageIndex].url
+                        : 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80'
+                    }
                     alt="Campaign"
                     className="w-full h-64 sm:h-80 lg:h-96 object-cover"
                   />
-                  {/* Type watermark */}
                   <div
                     className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-sm"
                     style={{ background: config.bgAccent, color: config.accentColor, border: `1px solid ${config.borderAccent}` }}
@@ -309,10 +321,10 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  {campaign.images.map((img, i) => (
+                  {(Array.isArray(campaign.images) ? campaign.images : []).map((img, i) => (
                     <img
                       key={i}
-                      src={img}
+                      src={img.url}
                       alt=""
                       onClick={() => setCurrentImageIndex(i)}
                       className={`w-full h-16 sm:h-20 rounded-xl object-cover cursor-pointer transition-all duration-300 border-2 ${i === currentImageIndex ? 'scale-105' : 'border-transparent opacity-60 hover:opacity-90'}`}
@@ -330,60 +342,13 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                   </span>
                   {campaign.type === 'fundraiser' ? 'The Story' : campaign.type === 'occasion' ? 'A Message from the Celebrant' : 'About'}
                 </h3>
-                {campaign.story.map((p, i) => (
-                  <p key={i} className="text-white/75 text-base leading-relaxed mb-4 last:mb-0">{p}</p>
-                ))}
+                <div className="text-white/75 text-base leading-relaxed whitespace-pre-wrap">
+                  {campaign.fullStory}
+                </div>
               </div>
 
-              {/* Occasion-specific: event details card */}
-              {campaign.type === 'occasion' && campaign.occasionDate && (
-                <div
-                  className="rounded-2xl p-6 sm:p-8 border"
-                  style={{ background: config.bgAccent, borderColor: config.borderAccent }}
-                >
-                  <h4 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: config.accentColor }}>
-                    🎊 Celebration Details
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/10 rounded-xl p-4 text-center">
-                      <div className="text-2xl font-black text-white">{campaign.daysLeft}</div>
-                      <div className="text-white/60 text-xs mt-1">Days to the big day</div>
-                    </div>
-                    <div className="bg-white/10 rounded-xl p-4 text-center">
-                      <div className="text-white font-semibold">{campaign.occasionDate}</div>
-                      <div className="text-white/60 text-xs mt-1">{campaign.occasionType}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tips-specific: about the creator */}
-              {campaign.type === 'tips' && (
-                <div
-                  className="rounded-2xl p-6 sm:p-8 border"
-                  style={{ background: config.bgAccent, borderColor: config.borderAccent }}
-                >
-                  <h4 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: config.accentColor }}>
-                    💡 Why your tip matters
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {[
-                      { icon: '🎧', label: 'Better Equipment', desc: 'Upgrade the tools that deliver great content' },
-                      { icon: '🆓', label: 'Free Content', desc: 'Keep making free content for everyone' },
-                      { icon: '🙏', label: 'Direct Support', desc: '100% goes directly to the creator' },
-                    ].map((item) => (
-                      <div key={item.label} className="bg-white/10 rounded-xl p-4 text-center">
-                        <div className="text-2xl mb-2">{item.icon}</div>
-                        <div className="text-white text-sm font-semibold mb-1">{item.label}</div>
-                        <div className="text-white/55 text-xs">{item.desc}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Fund usage breakdown (fundraisers only) */}
-              {campaign.type === 'fundraiser' && campaign.fundUsage && (
+              {campaign.type === 'fundraiser' && campaign.fundUsage && campaign.fundUsage.length > 0 && (
                 <div className="bg-white/5 rounded-2xl border border-white/10 p-6 sm:p-8 backdrop-blur-xl">
                   <h4 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
                     <span style={{ color: config.accentColor }}>📊</span>
@@ -391,7 +356,7 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                   </h4>
                   <div className="space-y-3">
                     {campaign.fundUsage.map((item, i) => {
-                      const pct = Math.round((item.amount / campaign.goal) * 100);
+                      const pct = campaign.goal ? Math.round((item.amount / campaign.goal) * 100) : 0;
                       return (
                         <div key={i} className="p-4 bg-white/5 rounded-xl border-l-4" style={{ borderLeftColor: config.accentColor }}>
                           <div className="flex justify-between items-center mb-2">
@@ -408,14 +373,48 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
               )}
+
+              {/* ── Recent supporters (MOVED HERE) ── */}
+              <div className="bg-white/5 rounded-2xl border border-white/10 backdrop-blur-xl p-6 sm:p-8">
+                <h4 className="text-white font-bold mb-6 flex items-center gap-2 text-lg">
+                  <span style={{ color: config.accentColor }}>❤</span>
+                  Recent {config.supportersLabel}
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {contributions.length > 0 ? contributions.map((d) => (
+                    <div key={d._id} className="flex items-start gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                        style={{ background: config.accentGradient }}
+                      >
+                        {d.supporterName?.substring(0, 2).toUpperCase() || 'AN'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start gap-2">
+                          <span className="text-white text-sm font-semibold">{d.supporterName || 'Anonymous'}</span>
+                          <span className="text-sm font-bold flex-shrink-0" style={{ color: config.accentColor }}>
+                            ₦{d.amount.toLocaleString()}
+                          </span>
+                        </div>
+                        {d.message && <div className="text-white/60 text-xs mt-1.5 leading-relaxed italic">"{d.message}"</div>}
+                        <div className="text-white/40 text-[10px] mt-2 uppercase font-medium tracking-wider">{new Date(d.createdAt).toLocaleDateString()}</div>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="col-span-full text-center py-10 text-white/40 text-sm border-2 border-dashed border-white/5 rounded-2xl">
+                      No contributions yet. Be the first to support this campaign!
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* ── RIGHT: Support sidebar ── */}
-            <div className="space-y-5">
-
-              {/* ── Main support card ── */}
+            {/* ── RIGHT: Support sidebar (Now independently scrollable) ── */}
+            <div className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto lg:pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent space-y-5">
+              
+              {/* Main support card */}
               <div
-                className="rounded-3xl border p-6 backdrop-blur-xl shadow-2xl sticky top-24"
+                className="rounded-3xl border p-6 backdrop-blur-xl shadow-2xl"
                 style={{ background: 'rgba(255,255,255,0.06)', borderColor: config.borderAccent }}
               >
                 {/* Progress */}
@@ -440,7 +439,7 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                       <div className="text-white/55 text-xs mt-0.5">{config.supportersLabel}</div>
                     </div>
                     <div className="text-center p-3 bg-white/5 rounded-xl">
-                      <div className="text-xl font-bold text-white">{campaign.daysLeft}</div>
+                      <div className="text-xl font-bold text-white">{campaign.daysLeft || 0}</div>
                       <div className="text-white/55 text-xs mt-0.5">
                         {campaign.type === 'occasion' ? 'Days until event' : 'Days left'}
                       </div>
@@ -448,144 +447,76 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
 
-                {/* Amount selector */}
-                <div className="mb-4">
-                  <div className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
-                    {campaign.type === 'tips' ? 'Choose a tip amount' : campaign.type === 'occasion' ? 'Gift amount (₦)' : 'Donation amount (₦)'}
+                {/* Support Form */}
+                <div className="space-y-4 mb-4">
+                  <div>
+                    <div className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
+                      {campaign.type === 'tips' ? 'Choose a tip amount' : campaign.type === 'occasion' ? 'Gift amount (₦)' : 'Donation amount (₦)'}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      {donationAmounts.map((amount) => (
+                        <button
+                          key={amount}
+                          type="button"
+                          onClick={() => { setSelectedAmount(amount); setCustomAmount(''); }}
+                          className="p-3 rounded-xl font-bold text-sm transition-all duration-200 border-2"
+                          style={selectedAmount === amount ? { background: config.bgAccent, borderColor: config.accentColor, color: config.accentColor } : { background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
+                        >
+                          ₦{amount.toLocaleString()}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="number"
+                      value={customAmount}
+                      min={1}
+                      onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
+                      placeholder={`Custom amount`}
+                      className="w-full px-4 py-3 rounded-xl border-2 bg-white/5 text-white text-base text-center font-semibold focus:outline-none placeholder:text-white/35 mb-3"
+                      style={{ borderColor: customAmount ? config.accentColor : 'rgba(255,255,255,0.15)' }}
+                    />
                   </div>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    {donationAmounts.map((amount) => (
-                      <button
-                        key={amount}
-                        onClick={() => { setSelectedAmount(amount); setCustomAmount(''); }}
-                        className="p-3 rounded-xl font-bold text-sm transition-all duration-200 border-2"
-                        style={selectedAmount === amount
-                          ? { background: config.bgAccent, borderColor: config.accentColor, color: config.accentColor }
-                          : { background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }
-                        }
-                      >
-                        ₦{amount.toLocaleString()}
-                      </button>
-                    ))}
+
+                  <div className="space-y-3">
+                    <input type="email" required value={supporterEmail} onChange={(e) => setSupporterEmail(e.target.value)} placeholder="Email for receipt" className="w-full px-4 py-3 rounded-xl border-2 border-white/15 bg-white/5 text-white text-sm focus:outline-none focus:border-pink-500 placeholder:text-white/35" />
+                    <input type="text" value={supporterName} onChange={(e) => setSupporterName(e.target.value)} placeholder="Display Name (optional)" className="w-full px-4 py-3 rounded-xl border-2 border-white/15 bg-white/5 text-white text-sm focus:outline-none focus:border-pink-500 placeholder:text-white/35" />
+                    <textarea value={supportMessage} onChange={(e) => setSupportMessage(e.target.value)} placeholder="Leave a message (optional)" rows={2} className="w-full px-4 py-3 rounded-xl border-2 border-white/15 bg-white/5 text-white text-sm focus:outline-none focus:border-pink-500 placeholder:text-white/35 resize-none" />
                   </div>
-                  <input
-                    type="number"
-                    value={customAmount}
-                    onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
-                    placeholder={`Enter custom ${config.amountLabel.toLowerCase()} amount`}
-                    className="w-full px-4 py-3 rounded-xl border-2 bg-white/5 text-white text-base text-center font-semibold backdrop-blur-md transition-all duration-200 focus:outline-none placeholder:text-white/35"
-                    style={{ borderColor: customAmount ? config.accentColor : 'rgba(255,255,255,0.15)' }}
-                  />
                 </div>
 
-                {/* Occasion extra: sender name */}
-                {campaign.type === 'occasion' && (
-                  <input
-                    type="text"
-                    value={tipperName}
-                    onChange={(e) => setTipperName(e.target.value)}
-                    placeholder="Your name (optional)"
-                    className="w-full px-4 py-3 rounded-xl border-2 border-white/15 bg-white/5 text-white text-sm mb-3 focus:outline-none focus:border-violet-400 placeholder:text-white/35"
-                  />
-                )}
-
-                {/* Tips extra: note */}
-                {campaign.type === 'tips' && (
-                  <textarea
-                    value={tipMessage}
-                    onChange={(e) => setTipMessage(e.target.value)}
-                    placeholder="Leave a message (optional)"
-                    rows={2}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-white/15 bg-white/5 text-white text-sm mb-3 focus:outline-none focus:border-cyan-400 placeholder:text-white/35 resize-none"
-                  />
-                )}
-
-                {/* CTA Button */}
                 <button
+                  type="button"
                   onClick={handleDonate}
-                  disabled={isDonateDisabled()}
-                  className="w-full py-4 rounded-full font-bold text-lg text-white border-none cursor-pointer transition-all duration-300 mb-4 flex items-center justify-center gap-2 hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  style={{ background: isDonateDisabled() ? 'rgba(255,255,255,0.1)' : config.accentGradient }}
+                  disabled={isDonating || (!selectedAmount && (!customAmount || parseInt(customAmount) <= 0)) || !supporterEmail}
+                  className="w-full py-4 rounded-full font-bold text-lg text-white border-none transition-all duration-300 mb-4 flex items-center justify-center gap-2 hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50"
+                  style={{ background: config.accentGradient }}
                 >
-                  {isDonating ? (
-                    <>
-                      <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="60" strokeDashoffset="20" strokeLinecap="round"/>
-                      </svg>
-                      {config.actionVerb}…
-                    </>
-                  ) : (
-                    <>{config.supportIcon} {config.supportLabel}</>
-                  )}
+                  {isDonating ? <><i className="fas fa-circle-notch fa-spin"></i> {config.actionVerb}…</> : <>{config.supportIcon} {config.supportLabel}</>}
                 </button>
 
-                <div className="text-center text-white/50 text-xs mb-5">
-                  🔒 {config.securityMsg}
-                </div>
+                <div className="text-center text-white/50 text-xs mb-5">🔒 {config.securityMsg}</div>
 
                 {/* Share */}
                 <div>
                   <div className="text-white/50 text-xs text-center mb-3">{config.shareMsg}</div>
                   <div className="flex justify-center gap-2">
-                    {[
-                      { key: 'twitter', icon: 'X', title: 'Share on X/Twitter' },
-                      { key: 'facebook', icon: 'f', title: 'Share on Facebook' },
-                      { key: 'whatsapp', icon: '📲', title: 'Share on WhatsApp' },
-                      { key: 'copy', icon: '🔗', title: 'Copy Link' },
-                    ].map((s) => (
-                      <button
-                        key={s.key}
-                        onClick={() => share(s.key)}
-                        title={s.title}
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-white/70 text-sm transition-all duration-200 border border-white/15 hover:border-white/40 hover:bg-white/10 hover:-translate-y-0.5"
-                      >
-                        {s.icon}
+                    {[{ key: 'twitter', icon: 'fab fa-x-twitter' }, { key: 'facebook', icon: 'fab fa-facebook-f' }, { key: 'whatsapp', icon: 'fab fa-whatsapp' }, { key: 'copy', icon: 'fas fa-link' }].map((s) => (
+                      <button key={s.key} type="button" onClick={() => share(s.key)} className="w-10 h-10 rounded-full flex items-center justify-center text-white/70 text-sm transition-all duration-200 border border-white/15 hover:border-white/40 hover:bg-white/10 hover:-translate-y-0.5">
+                        <i className={s.icon}></i>
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
-
-              {/* ── Recent supporters ── */}
-              <div className="bg-white/5 rounded-2xl border border-white/10 backdrop-blur-xl p-5">
-                <h4 className="text-white font-bold mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
-                  <span style={{ color: config.accentColor }}>❤</span>
-                  Recent {config.supportersLabel}
-                </h4>
-                <div className="space-y-3 max-h-72 overflow-y-auto">
-                  {RECENT_DONATIONS.map((d) => (
-                    <div key={d.id} className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                        style={{ background: config.accentGradient }}
-                      >
-                        {d.avatar}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start gap-2">
-                          <span className="text-white text-sm font-medium">{d.name}</span>
-                          <span className="text-sm font-bold flex-shrink-0" style={{ color: config.accentColor }}>
-                            ₦{d.amount.toLocaleString()}
-                          </span>
-                        </div>
-                        {d.message && <div className="text-white/50 text-xs mt-0.5 italic">"{d.message}"</div>}
-                        <div className="text-white/40 text-xs mt-0.5">{d.time}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
+
         </div>
       </div>
 
       {/* Success toast */}
       {showSuccess && (
-        <div
-          className="fixed bottom-6 right-4 sm:right-6 text-white px-5 py-4 rounded-2xl shadow-2xl z-50 max-w-xs text-sm font-medium border"
-          style={{ background: 'rgba(0,0,0,0.85)', borderColor: config.borderAccent, backdropFilter: 'blur(16px)' }}
-        >
+        <div className="fixed bottom-6 right-4 sm:right-6 text-white px-5 py-4 rounded-2xl shadow-2xl z-50 max-w-xs text-sm font-medium border" style={{ background: 'rgba(0,0,0,0.85)', borderColor: config.borderAccent, backdropFilter: 'blur(16px)' }}>
           <div className="flex items-start gap-3">
             <span className="text-xl flex-shrink-0">{config.supportIcon}</span>
             <span>{config.successMsg}</span>

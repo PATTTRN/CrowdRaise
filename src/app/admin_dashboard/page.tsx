@@ -1,6 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { collectionService, contributionService, withdrawalService } from '@/services';
+import { useAuthStore } from '@/store/authStore';
+import { useRouter } from 'next/navigation';
+import api from '@/lib/axios';
+import { toast } from 'sonner';
 
 interface Campaign {
   id: string;
@@ -18,118 +23,125 @@ interface Campaign {
   reason?: string;
 }
 
+interface Withdrawal {
+  _id: string;
+  creator: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  amount: number;
+  bankDetails: {
+    accountNumber: string;
+    bankName: string;
+    accountName: string;
+  };
+  status: 'pending' | 'approved' | 'processing' | 'completed' | 'rejected';
+  createdAt: string;
+  adminNote?: string;
+}
+
 interface PlatformStats {
-  totalCampaigns: number;
-  pendingCampaigns: number;
-  approvedCampaigns: number;
-  rejectedCampaigns: number;
+  totalCollections: number;
+  pendingCollections: number;
+  approvedCollections: number;
+  rejectedCollections: number;
   totalRaised: number;
-  totalUsers: number;
-  activeUsers: number;
-  platformFee: number;
+  platformRevenue: number;
+  totalContributions: number;
 }
 
 export default function AdminDashboardPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [filteredCampaigns, setFilteredCampaigns] = useState<Campaign[]>([]);
+  const { user, isAuthenticated } = useAuthStore();
+  const router = useRouter();
+
+  const [collections, setCollections] = useState<any[]>([]);
+  const [filteredCollections, setFilteredCollections] = useState<any[]>([]);
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [stats, setStats] = useState<PlatformStats>({
-    totalCampaigns: 0,
-    pendingCampaigns: 0,
-    approvedCampaigns: 0,
-    rejectedCampaigns: 0,
+    totalCollections: 0,
+    pendingCollections: 0,
+    approvedCollections: 0,
+    rejectedCollections: 0,
     totalRaised: 0,
-    totalUsers: 0,
-    activeUsers: 0,
-    platformFee: 0
+    platformRevenue: 0,
+    totalContributions: 0
   });
-  const [selectedTab, setSelectedTab] = useState<'overview' | 'pending' | 'approved' | 'rejected'>('overview');
+  const [selectedTab, setSelectedTab] = useState<'overview' | 'pending' | 'approved' | 'rejected' | 'withdrawals' | 'users'>('overview');
+  const [users, setUsers] = useState<any[]>([]);
+  const [allDonations, setAllDonations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const particlesRef = useRef<HTMLDivElement>(null);
 
-  // Sample data
-  const sampleCampaigns: Campaign[] = [
-    {
-      id: '1',
-      type: 'fundraiser',
-      title: "Help Sarah Complete Her Medical School Journey",
-      category: "Medical & Healthcare",
-      creator: "Sarah Johnson",
-      creatorEmail: "sarah.johnson@email.com",
-      location: "Lagos, Nigeria",
-      goal: 650000,
-      description: "Support Sarah's final year of medical school to become a doctor and serve her community.",
-      status: 'pending',
-      submittedAt: "2024-01-20",
-      image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      id: '2',
-      type: 'fundraiser',
-      title: "Community Library Project",
-      category: "Education",
-      creator: "Community Development Initiative",
-      creatorEmail: "info@communitydev.org",
-      location: "Kano, Nigeria",
-      goal: 1200000,
-      description: "Help us build a library to provide educational resources for children in rural communities.",
-      status: 'pending',
-      submittedAt: "2024-01-19",
-      image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      id: '3',
-      type: 'fundraiser',
-      title: "Emergency Relief for Flood Victims",
-      category: "Emergency & Crisis",
-      creator: "Disaster Relief Foundation",
-      creatorEmail: "help@disasterrelief.org",
-      location: "Port Harcourt, Nigeria",
-      goal: 2500000,
-      description: "Urgent support needed for families affected by recent flooding in the region.",
-      status: 'approved',
-      submittedAt: "2024-01-18",
-      image: "https://images.unsplash.com/photo-1574263867127-a8bdc5c3e3e7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      id: '4',
-      type: 'tips',
-      title: "Startup Funding for Tech Innovation",
-      category: "Personal Tips",
-      creator: "TechVision Labs",
-      creatorEmail: "contact@techvisionlabs.com",
-      location: "Abuja, Nigeria",
-      goal: 5000000,
-      description: "Revolutionary AI-powered healthcare platform to improve medical diagnosis in Africa.",
-      status: 'rejected',
-      submittedAt: "2024-01-17",
-      image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      reason: "Insufficient documentation and unclear business model"
-    },
-    {
-      id: '5',
-      type: 'occasion',
-      title: "Local Artisan Support",
-      category: "Occasion Gifts",
-      creator: "Artisan Empowerment Network",
-      creatorEmail: "info@artisanempowerment.org",
-      location: "Ibadan, Nigeria",
-      goal: 800000,
-      description: "Help local artisans preserve traditional crafts and create sustainable livelihoods.",
-      status: 'approved',
-      submittedAt: "2024-01-16",
-      image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  const fetchData = async (silent = false) => {
+    try {
+      if (!silent) setIsLoading(true);
+      // 1. Get all collections
+      const colsRes = await collectionService.getAllCollections();
+      setCollections(colsRes.data);
+      setFilteredCollections(colsRes.data);
+
+      // 2. Get revenue summary
+      const revRes = await contributionService.getRevenueSummary();
+      
+      // 3. Get withdrawals
+      const withRes = await withdrawalService.adminGetAll();
+      setWithdrawals(withRes.data);
+
+      setStats({
+        totalCollections: colsRes.data.length,
+        pendingCollections: colsRes.data.filter((c: any) => c.status === 'pending').length,
+        approvedCollections: colsRes.data.filter((c: any) => c.status === 'active').length,
+        rejectedCollections: colsRes.data.filter((c: any) => c.status === 'rejected').length,
+        totalRaised: revRes.summary.totalGrossDonated,
+        platformRevenue: revRes.summary.totalPlatformRevenue,
+        totalContributions: revRes.summary.totalContributions
+      });
+
+      // 4. Get All Users
+      try {
+        const usersRes = await api.get('/auth/users');
+        setUsers(usersRes.data.data);
+      } catch (e) {
+        console.warn('Admin users endpoint failed', e);
+      }
+
+      // 5. Get recent global donations (could add a global endpoint in backend)
+      // For now, we can fetch all contributions if the admin has access
+      try {
+        const donationsRes = await api.get('/contributions/admin/all'); // Assuming we add this or similar
+        setAllDonations(donationsRes.data);
+      } catch (e) {
+        console.warn('Global donations fetch failed');
+      }
+    } catch (error) {
+      toast.error('Failed to load dashboard data');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
 
   useEffect(() => {
+    if (isAuthenticated && user?.role !== 'admin') {
+      toast.error('Unauthorized access');
+      router.push('/');
+      return;
+    }
+    if (isAuthenticated) {
+      fetchData();
+    }
     // Create floating particles
     if (particlesRef.current) {
       const container = particlesRef.current;
       const particleCount = 30;
-      
+      // Clear any existing particles to avoid duplicates
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
       for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
         particle.className = 'particle';
@@ -140,63 +152,149 @@ export default function AdminDashboardPage() {
         container.appendChild(particle);
       }
     }
-
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setCampaigns(sampleCampaigns);
-      setFilteredCampaigns(sampleCampaigns);
-      setStats({
-        totalCampaigns: sampleCampaigns.length,
-        pendingCampaigns: sampleCampaigns.filter(c => c.status === 'pending').length,
-        approvedCampaigns: sampleCampaigns.filter(c => c.status === 'approved').length,
-        rejectedCampaigns: sampleCampaigns.filter(c => c.status === 'rejected').length,
-        totalRaised: 8500000,
-        totalUsers: 1250,
-        activeUsers: 890,
-        platformFee: 170000
-      });
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
+  // Only run this effect on mount and on auth/user change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
-    let filtered = campaigns;
+    let filtered = collections;
 
     // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(campaign =>
-        campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        campaign.creator.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        campaign.category.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter((col: any) =>
+        col.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        col.creator?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        col.category?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Filter by status
     if (selectedStatus && selectedStatus !== 'all') {
-      filtered = filtered.filter(campaign => campaign.status === selectedStatus);
+      const targetStatus = selectedStatus === 'approved' ? 'active' : selectedStatus;
+      filtered = filtered.filter((col: any) => col.status === targetStatus);
     }
 
-    setFilteredCampaigns(filtered);
-  }, [campaigns, searchTerm, selectedStatus]);
+    setFilteredCollections(filtered);
+  }, [collections, searchTerm, selectedStatus]);
 
-  const handleApprove = (campaignId: string) => {
-    setCampaigns(prev => prev.map(c => 
-      c.id === campaignId ? { ...c, status: 'approved' as const } : c
-    ));
+  const handleApprove = async (id: string) => {
+    try {
+      setIsProcessing(id);
+      await collectionService.updateCollection(id, { status: 'active' });
+      toast.success('Collection approved!');
+      fetchData(true);
+    } catch (error) {
+      toast.error('Failed to approve collection');
+    } finally {
+      setIsProcessing(null);
+    }
   };
 
-  const handleReject = (campaignId: string, reason: string) => {
-    setCampaigns(prev => prev.map(c => 
-      c.id === campaignId ? { ...c, status: 'rejected' as const, reason } : c
-    ));
+  const handleReject = async (id: string, reason: string) => {
+    try {
+      setIsProcessing(id);
+      await collectionService.updateCollection(id, { status: 'rejected' });
+      toast.success('Collection rejected');
+      fetchData(true);
+    } catch (error) {
+      toast.error('Failed to reject collection');
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handleDeleteCollection = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this collection? This action is permanent.')) return;
+    try {
+      setIsProcessing(id);
+      await collectionService.deleteCollection(id);
+      toast.success('Collection deleted');
+      fetchData(true);
+    } catch (error) {
+      toast.error('Failed to delete collection');
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handleApproveWithdrawal = async (id: string) => {
+    try {
+      setIsProcessing(id);
+      await withdrawalService.adminApprove(id);
+      toast.success('Withdrawal approved and transfer initiated!');
+      fetchData(true);
+    } catch (error: any) {
+      // Type guard for error shape
+      const errMsg =
+        (error && typeof error === 'object' && 'response' in error && (error as any).response?.data?.error) ||
+        'Failed to approve withdrawal';
+      toast.error(errMsg);
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handleRejectWithdrawal = async (id: string) => {
+    const reason = window.prompt('Enter rejection reason:');
+    if (reason === null) return;
+    try {
+      setIsProcessing(id);
+      await withdrawalService.adminReject(id, reason);
+      toast.success('Withdrawal rejected');
+      fetchData(true);
+    } catch (error) {
+      toast.error('Failed to reject withdrawal');
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handleCompleteWithdrawal = async (id: string) => {
+    try {
+      setIsProcessing(id);
+      await withdrawalService.adminComplete(id);
+      toast.success('Withdrawal marked as completed');
+      fetchData(true);
+    } catch (error) {
+      toast.error('Failed to complete withdrawal');
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handleUpdateUserRole = async (userId: string, newRole: string) => {
+    try {
+      setIsProcessing(userId);
+      await api.patch(`/auth/user/${userId}/role`, { role: newRole });
+      toast.success(`User role updated to ${newRole}`);
+      fetchData(true);
+    } catch (error) {
+      toast.error('Failed to update user role');
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Are you sure? This will permanently delete the user.')) return;
+    try {
+      setIsProcessing(userId);
+      await api.delete(`/auth/user/${userId}`);
+      toast.success('User deleted');
+      fetchData(true);
+    } catch (error) {
+      toast.error('Failed to delete user');
+    } finally {
+      setIsProcessing(null);
+    }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'text-yellow-400 bg-yellow-400/10';
-      case 'approved': return 'text-green-400 bg-green-400/10';
+      case 'approved':
+      case 'active': // Also include 'active' as approved status
+        return 'text-green-400 bg-green-400/10';
       case 'rejected': return 'text-red-400 bg-red-400/10';
       default: return 'text-white/60 bg-white/5';
     }
@@ -205,27 +303,50 @@ export default function AdminDashboardPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending': return 'Pending Review';
-      case 'approved': return 'Approved';
+      case 'approved':
+      case 'active': // Also consider 'active' as Approved
+        return 'Approved';
       case 'rejected': return 'Rejected';
       default: return 'Unknown';
     }
   };
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
+  // const toggleMobileMenu = () => {
+  //   setIsMobileMenuOpen(!isMobileMenuOpen);
+  // };
 
   if (isLoading) {
     return (
       <>
         <div className="bg-particles" id="particles" ref={particlesRef}></div>
-        <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 flex items-center justify-center">
+        <div className="min-h-screen bg-black flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-            <p className="text-white text-lg">Loading admin dashboard...</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-pink-500 mx-auto mb-4"></div>
+            <p className="text-white text-lg font-medium">Loading admin dashboard...</p>
           </div>
         </div>
       </>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black px-4 pt-20">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-10 max-w-md text-center shadow-2xl relative z-10">
+          <div className="text-6xl mb-6">🔒</div>
+          <h2 className="text-3xl font-bold text-white mb-4">Admin Access</h2>
+          <p className="text-white/60 mb-8 leading-relaxed">
+            This area is restricted to administrators. Please log in with an authorized account to continue.
+          </p>
+          <button 
+            onClick={() => window.dispatchEvent(new CustomEvent('open-auth-modal'))}
+            className="w-full py-4 rounded-full font-bold text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer"
+            style={{ background: 'linear-gradient(135deg, #f43f5e, #fb923c)' }}
+          >
+            Login to Admin
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -252,14 +373,16 @@ export default function AdminDashboardPage() {
             <div className="flex flex-wrap gap-2 sm:gap-4">
               {[
                 { id: 'overview', label: 'Overview', icon: 'fas fa-chart-line' },
-                { id: 'pending', label: 'Pending Review', icon: 'fas fa-clock', count: stats.pendingCampaigns },
-                { id: 'approved', label: 'Approved', icon: 'fas fa-check-circle', count: stats.approvedCampaigns },
-                { id: 'rejected', label: 'Rejected', icon: 'fas fa-times-circle', count: stats.rejectedCampaigns }
+                { id: 'pending', label: 'Pending Collections', icon: 'fas fa-clock', count: stats.pendingCollections },
+                { id: 'withdrawals', label: 'Withdrawal Requests', icon: 'fas fa-money-check-alt', count: withdrawals.filter(w => w.status === 'pending').length },
+                { id: 'users', label: 'Users', icon: 'fas fa-users', count: users.length },
+                { id: 'approved', label: 'Approved Collections', icon: 'fas fa-check-circle', count: stats.approvedCollections },
+                { id: 'rejected', label: 'Rejected Collections', icon: 'fas fa-times-circle', count: stats.rejectedCollections }
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setSelectedTab(tab.id as "overview" | "pending" | "approved" | "rejected")}
-                  className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base font-medium transition-all duration-300 ${
+                  onClick={() => setSelectedTab(tab.id as any)}
+                  className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base font-medium transition-all duration-300 cursor-pointer ${
                     selectedTab === tab.id
                       ? 'bg-gradient-to-r from-red-400 to-cyan-400 text-white shadow-lg'
                       : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
@@ -267,7 +390,7 @@ export default function AdminDashboardPage() {
                 >
                   <i className={tab.icon}></i>
                   <span className="hidden sm:inline">{tab.label}</span>
-                  {tab.count !== undefined && (
+                  {tab.count !== undefined && tab.count > 0 && (
                     <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
                       {tab.count}
                     </span>
@@ -283,10 +406,10 @@ export default function AdminDashboardPage() {
               {/* Stats Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {[
-                  { label: 'Total Collections', value: stats.totalCampaigns, icon: 'fas fa-bullhorn', color: 'from-blue-400 to-cyan-400' },
-                  { label: 'Pending Review', value: stats.pendingCampaigns, icon: 'fas fa-clock', color: 'from-yellow-400 to-orange-400' },
-                  { label: 'Total Raised', value: `₦${stats.totalRaised.toLocaleString()}`, icon: 'fas fa-money-bill-wave', color: 'from-green-400 to-emerald-400' },
-                  { label: 'Platform Fee', value: `₦${stats.platformFee.toLocaleString()}`, icon: 'fas fa-percentage', color: 'from-purple-400 to-pink-400' }
+                  { label: 'Total Collections', value: stats.totalCollections, icon: 'fas fa-bullhorn', color: 'from-blue-400 to-cyan-400' },
+                  { label: 'Pending Review', value: stats.pendingCollections, icon: 'fas fa-clock', color: 'from-yellow-400 to-orange-400' },
+                  { label: 'Total Raised (Gross)', value: `₦${stats.totalRaised.toLocaleString()}`, icon: 'fas fa-money-bill-wave', color: 'from-green-400 to-emerald-400' },
+                  { label: 'Platform Revenue', value: `₦${stats.platformRevenue.toLocaleString()}`, icon: 'fas fa-university', color: 'from-purple-400 to-pink-400' }
                 ].map((stat, index) => (
                   <div key={index} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
                     <div className="flex items-center justify-between mb-4">
@@ -306,46 +429,236 @@ export default function AdminDashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                 <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
                   <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-3">
-                    <i className="fas fa-users text-cyan-400"></i>
-                    User Statistics
+                    <i className="fas fa-hand-holding-usd text-cyan-400"></i>
+                    Platform Activity
                   </h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
-                      <span className="text-white/70">Total Users</span>
-                      <span className="text-white font-semibold">{stats.totalUsers.toLocaleString()}</span>
+                      <span className="text-white/70">Total Contributions</span>
+                      <span className="text-white font-semibold">{stats.totalContributions.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
-                      <span className="text-white/70">Active Users</span>
-                      <span className="text-white font-semibold">{stats.activeUsers.toLocaleString()}</span>
+                      <span className="text-white/70">Pending Withdrawals</span>
+                      <span className="text-white font-semibold">{withdrawals.filter(w => w.status === 'pending').length}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
-                      <span className="text-white/70">Engagement Rate</span>
+                      <span className="text-white/70">Avg Contribution</span>
                       <span className="text-cyan-400 font-semibold">
-                        {((stats.activeUsers / stats.totalUsers) * 100).toFixed(1)}%
+                        ₦{(stats.totalRaised / (stats.totalContributions || 1)).toFixed(0).toLocaleString()}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-3">
-                    <i className="fas fa-chart-pie text-cyan-400"></i>
-                    Collection Status
+                  {/* </div>
+                </div> */}
+              </div>
+
+              {/* Recent Donations Table */}
+              <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
+                <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                    <i className="fas fa-history text-cyan-400"></i>
+                    Recent Global Contributions
                   </h3>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-yellow-400/10 rounded-xl border border-yellow-400/20">
-                      <span className="text-yellow-400">Pending</span>
-                      <span className="text-yellow-400 font-semibold">{stats.pendingCampaigns}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-green-400/10 rounded-xl border border-green-400/20">
-                      <span className="text-green-400">Approved</span>
-                      <span className="text-green-400 font-semibold">{stats.approvedCampaigns}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-red-400/10 rounded-xl border border-red-400/20">
-                      <span className="text-red-400">Rejected</span>
-                      <span className="text-red-400 font-semibold">{stats.rejectedCampaigns}</span>
-                    </div>
-                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-white/5 border-b border-white/10">
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Supporter</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Collection</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Amount</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Status</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm text-right">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10">
+                      {(allDonations || []).slice(0, 10).map((donation: any) => (
+                        <tr key={donation._id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="text-white font-medium">{donation.supporterName || 'Anonymous'}</div>
+                            <div className="text-white/40 text-xs">{donation.supporterEmail}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-white/70 text-sm truncate max-w-xs">{donation.collectionTitle || 'Unknown Project'}</div>
+                          </td>
+                          <td className="px-6 py-4 font-bold text-cyan-400">
+                            ₦{donation.amount.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              donation.status === 'completed' ? 'bg-green-400/20 text-green-400' : 'bg-yellow-400/20 text-yellow-400'
+                            }`}>
+                              {donation.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right text-white/40 text-sm">
+                            {new Date(donation.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                      {(!allDonations || allDonations.length === 0) && (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-white/30 italic">
+                            No donation activity recorded yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Withdrawals Management Tab */}
+          {selectedTab === 'withdrawals' && (
+            <div className="space-y-6 sm:space-y-8">
+              <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-white/5 border-b border-white/10">
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Creator</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Amount</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Bank Details</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Status</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Date</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10">
+                      {withdrawals.map((withdrawal) => (
+                        <tr key={withdrawal._id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="text-white font-medium">{withdrawal.creator?.name || 'Unknown'}</div>
+                            <div className="text-white/40 text-xs">{withdrawal.creator?.email}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-cyan-400 font-bold">₦{withdrawal.amount.toLocaleString()}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-white text-sm">{withdrawal.bankDetails.bankName}</div>
+                            <div className="text-white/40 text-xs">{withdrawal.bankDetails.accountNumber} • {withdrawal.bankDetails.accountName}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              withdrawal.status === 'pending' ? 'bg-yellow-400/10 text-yellow-400' :
+                              withdrawal.status === 'processing' ? 'bg-blue-400/10 text-blue-400' :
+                              withdrawal.status === 'completed' ? 'bg-green-400/10 text-green-400' :
+                              'bg-red-400/10 text-red-400'
+                            }`}>
+                              {withdrawal.status.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-white/40 text-sm">
+                            {new Date(withdrawal.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex justify-end gap-2">
+                              {withdrawal.status === 'pending' && (
+                                <>
+                                  <button 
+                                    onClick={() => handleApproveWithdrawal(withdrawal._id)}
+                                    className="p-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-all"
+                                    title="Approve & Transfer"
+                                  >
+                                    <i className="fas fa-check"></i>
+                                  </button>
+                                  <button 
+                                    onClick={() => handleRejectWithdrawal(withdrawal._id)}
+                                    className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
+                                    title="Reject"
+                                  >
+                                    <i className="fas fa-times"></i>
+                                  </button>
+                                </>
+                              )}
+                              {withdrawal.status === 'processing' && (
+                                <button 
+                                  onClick={() => handleCompleteWithdrawal(withdrawal._id)}
+                                  disabled={isProcessing === withdrawal._id}
+                                  className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-500/30 transition-all disabled:opacity-50"
+                                >
+                                  {isProcessing === withdrawal._id ? <i className="fas fa-spinner fa-spin"></i> : 'Complete Transfer'}
+                                </button>
+                              )}
+                              {withdrawal.status === 'pending' && (
+                                <button 
+                                  onClick={() => handleCompleteWithdrawal(withdrawal._id)}
+                                  disabled={isProcessing === withdrawal._id}
+                                  className="px-3 py-1 bg-white/10 text-white/70 rounded-lg text-xs font-bold hover:bg-white/20 transition-all disabled:opacity-50"
+                                  title="Skip automated payout and mark as paid"
+                                >
+                                  {isProcessing === withdrawal._id ? <i className="fas fa-spinner fa-spin"></i> : 'Mark Paid Manually'}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Users Tab */}
+          {selectedTab === 'users' && (
+            <div className="space-y-6 sm:space-y-8">
+              <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-white/5 border-b border-white/10">
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">User</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Role</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Verified</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Joined</th>
+                        <th className="px-6 py-4 text-white/60 font-semibold text-sm text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10">
+                      {users.map((u) => (
+                        <tr key={u._id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="text-white font-medium">{u.name}</div>
+                            <div className="text-white/40 text-xs">{u.email}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-white/70 text-sm capitalize">{u.role}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            {u.isEmailVerified ? 
+                              <i className="fas fa-check-circle text-green-400"></i> : 
+                              <i className="fas fa-times-circle text-red-400"></i>
+                            }
+                          </td>
+                          <td className="px-6 py-4 text-right flex justify-end gap-2">
+                            <select 
+                              value={u.role}
+                              onChange={(e) => handleUpdateUserRole(u._id, e.target.value)}
+                              disabled={isProcessing === u._id || u._id === user?._id}
+                              className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-400 disabled:opacity-50"
+                            >
+                              <option value="user" className="bg-gray-800">User</option>
+                              <option value="admin" className="bg-gray-800">Admin</option>
+                            </select>
+                            <button 
+                              onClick={() => handleDeleteUser(u._id)}
+                              disabled={isProcessing === u._id || u._id === user?._id}
+                              className="p-1.5 text-red-400/50 hover:text-red-400 transition-colors disabled:opacity-50"
+                              title="Delete User"
+                            >
+                              {isProcessing === u._id ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-trash-alt"></i>}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -379,16 +692,20 @@ export default function AdminDashboardPage() {
 
               {/* Collections List */}
               <div className="space-y-4 sm:space-y-6">
-                {filteredCampaigns
-                  .filter(campaign => selectedTab === 'overview' || campaign.status === selectedTab)
-                  .map((campaign) => (
-                    <div key={campaign.id} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
+                {filteredCollections
+                  .filter(collection => {
+                    if (selectedTab === 'overview') return true;
+                    if (selectedTab === 'approved') return collection.status === 'active';
+                    return collection.status === selectedTab;
+                  })
+                  .map((collection) => (
+                    <div key={collection._id} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
                       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
                         {/* Campaign Image */}
                         <div className="flex-shrink-0">
                           <img 
-                            src={campaign.image} 
-                            alt={campaign.title} 
+                            src={collection.primaryImage?.url || collection.images?.[0]?.url || 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'} 
+                            alt={collection.title} 
                             className="w-full lg:w-48 h-32 lg:h-32 rounded-xl object-cover"
                           />
                         </div>
@@ -398,75 +715,79 @@ export default function AdminDashboardPage() {
                           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">
                             <div className="flex-1">
                               <h3 className="text-white font-bold text-lg sm:text-xl mb-2 line-clamp-2">
-                                {campaign.title}
+                                {collection.title}
                               </h3>
                               <div className="flex flex-wrap gap-2 mb-3">
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
-                                  {getStatusText(campaign.status)}
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(collection.status)}`}>
+                                  {getStatusText(collection.status)}
                                 </span>
                                 <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-white/70">
-                                  {campaign.category}
+                                  {collection.category}
                                 </span>
                                 <span className="px-3 py-1 rounded-full text-xs font-medium bg-cyan-400/15 text-cyan-300 capitalize">
-                                  {campaign.type}
+                                  {collection.type}
                                 </span>
                               </div>
                             </div>
                             <div className="text-right text-sm text-white/60">
-                              Submitted: {new Date(campaign.submittedAt).toLocaleDateString()}
+                              Submitted: {new Date(collection.createdAt).toLocaleDateString()}
                             </div>
                           </div>
 
                           <p className="text-white/70 text-sm sm:text-base mb-4 line-clamp-2">
-                            {campaign.description}
+                            {collection.description}
                           </p>
 
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-sm mb-4">
                             <div>
                               <div className="text-white/60">Creator</div>
-                              <div className="text-white font-medium">{campaign.creator}</div>
+                              <div className="text-white font-medium">{collection.creator?.name || 'Unknown'}</div>
                             </div>
                             <div>
                               <div className="text-white/60">Email</div>
-                              <div className="text-white font-medium truncate">{campaign.creatorEmail}</div>
+                              <div className="text-white font-medium truncate">{collection.creator?.email || '-'}</div>
                             </div>
                             <div>
-                              <div className="text-white/60">Location</div>
-                              <div className="text-white font-medium">{campaign.location}</div>
+                              <div className="text-white/60">Raised</div>
+                              <div className="text-white font-medium">₦{collection.raised?.toLocaleString() || 0}</div>
                             </div>
                             <div>
                               <div className="text-white/60">Goal</div>
-                              <div className="text-white font-medium">₦{campaign.goal.toLocaleString()}</div>
+                              <div className="text-white font-medium">₦{collection.goal?.toLocaleString()}</div>
                             </div>
                           </div>
 
-                          {/* Rejection Reason */}
-                          {campaign.status === 'rejected' && campaign.reason && (
-                            <div className="mb-4 p-3 bg-red-400/10 border border-red-400/20 rounded-lg">
-                              <div className="text-red-400 font-medium text-sm mb-1">Rejection Reason:</div>
-                              <div className="text-red-400/80 text-sm">{campaign.reason}</div>
-                            </div>
-                          )}
-
                           {/* Action Buttons */}
-                          {campaign.status === 'pending' && (
-                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                              <button
-                                onClick={() => handleApprove(campaign.id)}
-                                className="px-4 sm:px-6 py-2 sm:py-3 bg-green-500/20 text-green-400 rounded-lg font-medium border border-green-400/30 hover:bg-green-500/30 transition-colors"
-                              >
-                                <i className="fas fa-check mr-2"></i>
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleReject(campaign.id, 'Insufficient documentation')}
-                                className="px-4 sm:px-6 py-2 sm:py-3 bg-red-500/20 text-red-400 rounded-lg font-medium border border-red-400/30 hover:bg-red-500/30 transition-colors"
-                              >
-                                <i className="fas fa-times mr-2"></i>
-                                Reject
-                              </button>
-                            </div>
-                          )}
+                          <div className="flex flex-wrap gap-2 sm:gap-3">
+                            {collection.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleApprove(collection._id)}
+                                  disabled={isProcessing === collection._id}
+                                  className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg font-medium border border-green-400/30 hover:bg-green-500/30 transition-colors cursor-pointer disabled:opacity-50"
+                                >
+                                  {isProcessing === collection._id ? <i className="fas fa-spinner fa-spin mr-2"></i> : <i className="fas fa-check mr-2"></i>}
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleReject(collection._id, 'Insufficient documentation')}
+                                  disabled={isProcessing === collection._id}
+                                  className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg font-medium border border-red-400/30 hover:bg-red-500/30 transition-colors cursor-pointer disabled:opacity-50"
+                                >
+                                  <i className="fas fa-times mr-2"></i>
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => handleDeleteCollection(collection._id)}
+                              disabled={isProcessing === collection._id}
+                              className="px-4 py-2 bg-white/5 text-white/40 rounded-lg font-medium border border-white/10 hover:bg-red-500/20 hover:text-red-400 hover:border-red-400/30 transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              <i className="fas fa-trash-alt mr-2"></i>
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -474,7 +795,7 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Empty State */}
-              {filteredCampaigns.filter(c => selectedTab === 'overview' || c.status === selectedTab).length === 0 && (
+              {filteredCollections.filter(c => selectedTab === 'overview' || c.status === selectedTab).length === 0 && (
                 <div className="text-center py-12 sm:py-16">
                   <i className="fas fa-inbox text-6xl text-white/30 mb-6"></i>
                   <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4">No collections found</h3>

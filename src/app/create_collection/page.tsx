@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
+import { toast } from 'sonner';
+import { collectionService } from '@/services';
+import { upload } from "@imagekit/next";
 
 // ─── Type config ─────────────────────────────────────────────────────────────
 const TYPE_CONFIG = {
@@ -169,7 +173,7 @@ function FullHeroCarousel({
           <button
             type="button"
             key={t.id}
-            className={`w-3 h-3 rounded-full transition-all duration-200 border-2 shadow
+            className={`w-3 h-3 rounded-full transition-all duration-200 border-2 shadow cursor-pointer
               ${selectedType === t.id
                 ? 'bg-white border-white scale-125'
                 : 'bg-white/50 border-white/40'
@@ -184,7 +188,7 @@ function FullHeroCarousel({
       <button
         type="button"
         aria-label="Previous"
-        className="hidden md:flex absolute left-5 top-1/2 -translate-y-1/2 z-40 w-11 h-11 rounded-full bg-black/40 text-white hover:bg-black/70 items-center justify-center transition"
+        className="hidden md:flex absolute left-5 top-1/2 -translate-y-1/2 z-40 w-11 h-11 rounded-full bg-black/40 text-white hover:bg-black/70 items-center justify-center transition cursor-pointer"
         onClick={() => {
           const idx = COLLECTION_TYPES.findIndex((t) => t.id === selectedType);
           setSelectedType(COLLECTION_TYPES[(idx - 1 + COLLECTION_TYPES.length) % COLLECTION_TYPES.length].id);
@@ -195,7 +199,7 @@ function FullHeroCarousel({
       <button
         type="button"
         aria-label="Next"
-        className="hidden md:flex absolute right-5 top-1/2 -translate-y-1/2 z-40 w-11 h-11 rounded-full bg-black/40 text-white hover:bg-black/70 items-center justify-center transition"
+        className="hidden md:flex absolute right-5 top-1/2 -translate-y-1/2 z-40 w-11 h-11 rounded-full bg-black/40 text-white hover:bg-black/70 items-center justify-center transition cursor-pointer"
         onClick={() => {
           const idx = COLLECTION_TYPES.findIndex((t) => t.id === selectedType);
           setSelectedType(COLLECTION_TYPES[(idx + 1) % COLLECTION_TYPES.length].id);
@@ -209,7 +213,9 @@ function FullHeroCarousel({
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function CreateCampaign() {
+  const { user, isAuthenticated } = useAuthStore();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialType = (searchParams.get('type') as CollectionType) || 'fundraiser';
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -252,6 +258,29 @@ export default function CreateCampaign() {
     }
   }, []);
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black px-4 pt-20">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-10 max-w-md text-center shadow-2xl">
+          <div className="text-6xl mb-6">🔐</div>
+          <h2 className="text-3xl font-bold text-white mb-4">Login Required</h2>
+          <p className="text-white/60 mb-8 leading-relaxed">
+            You need to be logged in to create a collection and start raising funds.
+          </p>
+          <button 
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-auth-modal'));
+            }}
+            className="w-full py-4 rounded-full font-bold text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer"
+            style={{ background: 'linear-gradient(135deg, #f43f5e, #fb923c)' }}
+          >
+            Open Login Modal
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -266,6 +295,10 @@ export default function CreateCampaign() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    if (imageFiles.length + files.length > 5) {
+      toast.error('You can only upload up to 5 images');
+      return;
+    }
     setImageFiles((prev) => [...prev, ...files]);
     files.forEach((file) => {
       if (file.type.startsWith('image/')) {
@@ -286,39 +319,131 @@ export default function CreateCampaign() {
   };
 
   const nextStep = () => {
+    if (currentStep === 1) {
+      if (!formData.title || !formData.category || !formData.description) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+      if (selectedType === 'fundraiser' && !formData.goal) {
+        toast.error('Goal amount is required for fundraisers');
+        return;
+      }
+    }
+    if (currentStep === 2) {
+      if (!formData.fullStory) {
+        toast.error('Please tell your story');
+        return;
+      }
+    }
     if (currentStep < totalSteps) setCurrentStep((s) => s + 1);
   };
   const prevStep = () => {
     if (currentStep > 1) setCurrentStep((s) => s - 1);
   };
 
+  const authenticator = async () => {
+    try {
+      const response = await fetch("/api/upload-auth");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Request failed with status ${response.status}: ${errorText}`);
+      }
+      const data = await response.json();
+      const { signature, expire, token, publicKey } = data;
+      return { signature, expire, token, publicKey };
+    } catch (error) {
+      console.error("Authentication error:", error);
+      throw new Error("Authentication request failed");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.terms) {
+      toast.error('Please agree to the terms');
+      return;
+    }
+
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    setIsSubmitting(false);
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      setCurrentStep(1);
-      setFormData({
-        title: '',
-        category: '',
-        goal: '',
-        eventDate: '',
-        occasionType: '',
-        receiverName: '',
-        suggestedAmounts: '',
-        description: '',
-        fullStory: '',
-        fundUsage: '',
-        terms: false,
-        isAnonymous: false,
-      });
-      setImagePreviews([]);
-      setImageFiles([]);
-    }, 3500);
+    
+    try {
+      // Map category to backend enum
+      let backendCategory = formData.category;
+      if (selectedType === 'occasion') {
+        backendCategory = 'Occasion Gifts';
+      } else if (selectedType === 'tips') {
+        backendCategory = 'Personal Tips';
+      }
+
+      // Real image upload using ImageKit
+      const uploadedImages = [];
+      if (imageFiles.length > 0) {
+        // toast.info(`Uploading ${imageFiles.length} image(s)...`);
+        
+        for (let i = 0; i < imageFiles.length; i++) {
+          const authParams = await authenticator();
+          const file = imageFiles[i];
+          try {
+            const uploadRes = await upload({
+              ...authParams,
+              file,
+              fileName: file.name,
+              folder: "/crowdraise/collections"
+            });
+            uploadedImages.push({
+              url: uploadRes.url,
+              publicId: uploadRes.fileId,
+              isPrimary: i === 0
+            });
+          } catch (uploadError) {
+            console.error(`Failed to upload image ${i+1}:`, uploadError);
+            throw new Error(`Failed to upload image ${i+1}. Please try again.`);
+          }
+        }
+      }
+
+      // Prepare payload as JSON object
+      const payload: any = {
+        type: selectedType,
+        title: formData.title,
+        category: backendCategory,
+        description: formData.description,
+        fullStory: formData.fullStory,
+        goal: formData.goal ? Number(formData.goal) : undefined,
+        // Use real uploaded images if any, otherwise empty array
+        images: uploadedImages.length > 0 ? uploadedImages : []
+      };
+
+      if (selectedType === 'occasion') {
+        payload.eventDate = formData.eventDate;
+        payload.receiverName = formData.receiverName;
+      }
+
+      if (selectedType === 'fundraiser' && formData.fundUsage) {
+        payload.fundUsage = [{
+          description: formData.fundUsage,
+          amount: Number(formData.goal) || 0
+        }];
+      }
+
+      if (formData.suggestedAmounts) {
+        payload.suggestedAmounts = formData.suggestedAmounts
+          .split(',')
+          .map(a => a.trim())
+          .filter(a => !isNaN(Number(a)))
+          .map(a => Number(a));
+      }
+
+      const response = await collectionService.createCollection(payload);
+      toast.success('Collection created successfully! 🚀');
+      router.push(`/collection_detail/${response.data._id}`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to create collection');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
 
   // ── Input style helper ──
   const inputCls = `w-full px-4 py-3.5 rounded-xl border-2 bg-white/5 text-white text-base placeholder:text-white/35 backdrop-blur-md transition-all duration-200 focus:outline-none`;
@@ -419,7 +544,7 @@ export default function CreateCampaign() {
                           key={t.id}
                           type="button"
                           onClick={() => setSelectedType(t.id)}
-                          className="p-5 rounded-2xl border-2 text-left transition-all duration-200 hover:-translate-y-0.5"
+                          className="p-5 rounded-2xl border-2 text-left transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
                           style={isSelected
                             ? { background: tc.bgAccent, borderColor: tc.color }
                             : { background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.12)' }
@@ -601,7 +726,7 @@ export default function CreateCampaign() {
                   </div>
 
                   <div className="flex justify-end mt-8">
-                    <button type="button" onClick={nextStep} className="px-8 py-3.5 rounded-full font-bold text-white text-base transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl" style={{ background: config.gradient }}>
+                    <button type="button" onClick={nextStep} className="px-8 py-3.5 rounded-full font-bold text-white text-base transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl cursor-pointer" style={{ background: config.gradient }}>
                       Continue →
                     </button>
                   </div>
@@ -682,7 +807,7 @@ export default function CreateCampaign() {
                               <button
                                 type="button"
                                 onClick={() => removeImage(i)}
-                                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                               >
                                 ×
                               </button>
@@ -708,10 +833,10 @@ export default function CreateCampaign() {
                   </div>
 
                   <div className="flex justify-between mt-8">
-                    <button type="button" onClick={prevStep} className="px-6 py-3 rounded-full font-semibold text-white/70 text-base border border-white/15 bg-white/5 hover:bg-white/10 transition-all duration-200">
+                    <button type="button" onClick={prevStep} className="px-6 py-3 rounded-full font-semibold text-white/70 text-base border border-white/15 bg-white/5 hover:bg-white/10 transition-all duration-200 cursor-pointer">
                       ← Back
                     </button>
-                    <button type="button" onClick={nextStep} className="px-8 py-3.5 rounded-full font-bold text-white text-base transition-all duration-200 hover:-translate-y-0.5" style={{ background: config.gradient }}>
+                    <button type="button" onClick={nextStep} className="px-8 py-3.5 rounded-full font-bold text-white text-base transition-all duration-200 hover:-translate-y-0.5 cursor-pointer" style={{ background: config.gradient }}>
                       Review →
                     </button>
                   </div>
@@ -780,13 +905,13 @@ export default function CreateCampaign() {
                   </label>
 
                   <div className="flex justify-between">
-                    <button type="button" onClick={prevStep} className="px-6 py-3 rounded-full font-semibold text-white/70 text-base border border-white/15 bg-white/5 hover:bg-white/10 transition-all duration-200">
+                    <button type="button" onClick={prevStep} className="px-6 py-3 rounded-full font-semibold text-white/70 text-base border border-white/15 bg-white/5 hover:bg-white/10 transition-all duration-200 cursor-pointer">
                       ← Back
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting || !formData.terms}
-                      className="px-8 py-3.5 rounded-full font-bold text-white text-base transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                      className="px-8 py-3.5 rounded-full font-bold text-white text-base transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
                       style={{ background: config.gradient }}
                     >
                       {isSubmitting ? (
