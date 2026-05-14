@@ -70,12 +70,23 @@ const CATEGORIES = [
   'Music & Entertainment', 'Food & Hospitality', 'Performer / Artist',
 ];
 
+type SortByType = 'newest' | 'popular' | 'ending' | 'goal';
+
+interface FetchCollectionsParams {
+  status: string;
+  limit: number;
+  type?: string;
+  category?: string;
+  search?: string;
+  sort?: string;
+}
+
 export default function ExplorePage() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [typeFilter, setTypeFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('All Categories');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'ending' | 'goal'>('newest');
+  const [sortBy, setSortBy] = useState<SortByType>('newest');
   const [isLoading, setIsLoading] = useState(true);
   const [initialLoaded, setInitialLoaded] = useState(false); // Track if initial load has happened
   const particlesRef = useRef<HTMLDivElement>(null);
@@ -83,7 +94,7 @@ export default function ExplorePage() {
   const fetchCollections = async () => {
     setIsLoading(true);
     try {
-      const params: any = {
+      const params: FetchCollectionsParams = {
         status: 'active',
         limit: 50,
       };
@@ -91,9 +102,9 @@ export default function ExplorePage() {
       if (typeFilter !== 'all') params.type = typeFilter;
       if (categoryFilter !== 'All Categories') params.category = categoryFilter;
       if (searchTerm) params.search = searchTerm;
-      
+
       // Map frontend sorts to backend sorts
-      const sortMap = {
+      const sortMap: Record<SortByType, string> = {
         newest: '-createdAt',
         popular: '-supporters',
         ending: 'deadline',
@@ -103,8 +114,9 @@ export default function ExplorePage() {
 
       const response = await collectionService.getAllCollections(params);
       setCollections(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load collections');
+      // eslint-disable-next-line no-console
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -120,10 +132,10 @@ export default function ExplorePage() {
       for (let i = 0; i < 30; i++) {
         const p = document.createElement('div');
         p.className = 'particle';
-        p.style.left = Math.random() * 100 + '%';
-        p.style.top = Math.random() * 100 + '%';
-        p.style.animationDelay = Math.random() * 6 + 's';
-        p.style.animationDuration = (Math.random() * 4 + 4) + 's';
+        p.style.left = `${Math.random() * 100}%`;
+        p.style.top = `${Math.random() * 100}%`;
+        p.style.animationDelay = `${Math.random() * 6}s`;
+        p.style.animationDuration = `${Math.random() * 4 + 4}s`;
         container.appendChild(p);
       }
     }
@@ -164,7 +176,7 @@ export default function ExplorePage() {
           style={{
             zIndex: 0,
             backgroundImage:
-              `linear-gradient(rgba(20, 20, 30, 0.82), rgba(30,20,60, 0.78)), url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?fit=crop&w=1200&q=80')`,
+              `linear-gradient(rgba(20, 20, 30, 0.82), rgba(30,20,60, 0.78)), url(https://images.unsplash.com/photo-1506744038136-46273834b3fb?fit=crop&w=1200&q=80)`,
             backgroundRepeat: 'no-repeat',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
@@ -229,7 +241,7 @@ export default function ExplorePage() {
             </select>
             <select
               value={sortBy}
-              onChange={e => setSortBy(e.target.value as typeof sortBy)}
+              onChange={e => setSortBy(e.target.value as SortByType)}
               className="px-4 py-3 rounded-xl border border-white/15 bg-white/5 text-white/80 text-sm focus:outline-none backdrop-blur-md"
             >
               <option value="newest" className="bg-gray-900">Featured First</option>
@@ -317,7 +329,7 @@ export default function ExplorePage() {
                         {/* Creator */}
                         <div className="flex items-center gap-1.5 text-white/40 text-xs mb-4">
                           <span style={{ color: meta.color }}>▸</span>
-                          {c.creator?.name || 'Anonymous'} · {c.location}
+                          {c.creator?.name || 'Anonymous'} &middot; {c.location}
                         </div>
 
                         {/* Progress */}
@@ -385,7 +397,7 @@ export default function ExplorePage() {
                 Ready to start your own collection?
               </h2>
               <p className="text-white/60 mb-7 max-w-lg mx-auto">
-                Whether it's a fundraiser, a gift collection, or a tip page — you're 3 minutes from going live.
+                Whether it&apos;s a fundraiser, a gift collection, or a tip page — you&apos;re 3 minutes from going live.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 {(['fundraiser', 'occasion', 'tips'] as CollectionType[]).map(type => {

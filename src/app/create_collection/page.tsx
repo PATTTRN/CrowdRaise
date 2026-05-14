@@ -34,7 +34,6 @@ const TYPE_CONFIG = {
     showEventDate: false,
     showTipSuggestions: false,
     step2Heading: 'Tell Your Story',
-    // Befitting fundraising/charity/hope crowd-sourced image
     heroImage:
       'https://images.unsplash.com/photo-1506744038136-46273834b3fb?fit=crop&w=1200&q=80',
   },
@@ -63,7 +62,6 @@ const TYPE_CONFIG = {
     showEventDate: true,
     showTipSuggestions: false,
     step2Heading: 'Your Celebration Story',
-    // A happy celebration
     heroImage:
       'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?fit=crop&w=1200&q=80',
   },
@@ -92,7 +90,6 @@ const TYPE_CONFIG = {
     showEventDate: false,
     showTipSuggestions: true,
     step2Heading: 'Introduce Yourself',
-    // Remindful of creative work or small business - working at a cafe
     heroImage:
       'https://images.unsplash.com/photo-1464983953574-0892a716854b?fit=crop&w=1200&q=80',
   },
@@ -105,6 +102,53 @@ const COLLECTION_TYPES: { id: CollectionType; desc: string }[] = [
   { id: 'occasion', desc: 'Collect gifts for a wedding, birthday, anniversary & more' },
   { id: 'tips', desc: 'Let fans & followers tip you for your work' },
 ];
+
+// Types for payload and uploaded images
+type UploadedImage = {
+  url: string;
+  publicId: string;
+  isPrimary: boolean;
+};
+
+type FundUsage = {
+  description: string;
+  amount: number;
+}
+
+type CreateCollectionPayload = {
+  type: CollectionType;
+  title: string;
+  category: string;
+  description: string;
+  fullStory: string;
+  goal?: number;
+  images: UploadedImage[];
+  eventDate?: string;
+  receiverName?: string;
+  fundUsage?: FundUsage[];
+  suggestedAmounts?: number[];
+};
+
+type CreateCollectionResponse = {
+  data: {
+    _id: string;
+  };
+};
+
+type FormState = {
+  title: string;
+  category: string;
+  goal: string;
+  eventDate: string;
+  occasionType: string;
+  receiverName: string;
+  suggestedAmounts: string;
+  description: string;
+  fullStory: string;
+  fundUsage: string;
+  terms: boolean;
+  isAnonymous: boolean;
+};
 
 // ─── Hero Fullscreen Carousel ────────────────────────────────────────────────
 function FullHeroCarousel({
@@ -143,7 +187,7 @@ function FullHeroCarousel({
               }}
             ></div>
             <div className="relative h-full flex flex-col justify-center px-7 md:px-14 lg:px-20 w-auto">
-       
+
               <div
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold mb-5 border transition"
                 style={{
@@ -220,7 +264,7 @@ export default function CreateCampaign() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedType, setSelectedType] = useState<CollectionType>(initialType);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormState>({
     title: '',
     category: '',
     goal: '',
@@ -365,7 +409,7 @@ export default function CreateCampaign() {
     }
 
     setIsSubmitting(true);
-    
+
     try {
       // Map category to backend enum
       let backendCategory = formData.category;
@@ -376,10 +420,10 @@ export default function CreateCampaign() {
       }
 
       // Real image upload using ImageKit
-      const uploadedImages = [];
+      const uploadedImages: UploadedImage[] = [];
       if (imageFiles.length > 0) {
         // toast.info(`Uploading ${imageFiles.length} image(s)...`);
-        
+
         for (let i = 0; i < imageFiles.length; i++) {
           const authParams = await authenticator();
           const file = imageFiles[i];
@@ -390,27 +434,29 @@ export default function CreateCampaign() {
               fileName: file.name,
               folder: "/crowdraise/collections"
             });
+
             uploadedImages.push({
-              url: uploadRes.url,
-              publicId: uploadRes.fileId,
+              url: uploadRes?.url || "",
+              publicId: uploadRes?.fileId || "",
               isPrimary: i === 0
             });
+
+       
           } catch (uploadError) {
-            console.error(`Failed to upload image ${i+1}:`, uploadError);
-            throw new Error(`Failed to upload image ${i+1}. Please try again.`);
+            console.error(`Failed to upload image ${i + 1}:`, uploadError);
+            throw new Error(`Failed to upload image ${i + 1}. Please try again.`);
           }
         }
       }
 
       // Prepare payload as JSON object
-      const payload: any = {
+      const payload: CreateCollectionPayload = {
         type: selectedType,
         title: formData.title,
         category: backendCategory,
         description: formData.description,
         fullStory: formData.fullStory,
         goal: formData.goal ? Number(formData.goal) : undefined,
-        // Use real uploaded images if any, otherwise empty array
         images: uploadedImages.length > 0 ? uploadedImages : []
       };
 
@@ -434,16 +480,24 @@ export default function CreateCampaign() {
           .map(a => Number(a));
       }
 
-      const response = await collectionService.createCollection(payload);
+      const response = await collectionService.createCollection(payload) as CreateCollectionResponse;
       toast.success('Collection created successfully! 🚀');
       router.push(`/collection_detail/${response.data._id}`);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to create collection');
+    } catch (error) {
+      // Typescript guard for error type
+      if (typeof error === 'object' && error !== null && 'response' in error) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const apiError = error as { response?: { data?: { message?: string } } };
+        toast.error(apiError.response?.data?.message || 'Failed to create collection');
+      } else if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to create collection');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
-
 
   // ── Input style helper ──
   const inputCls = `w-full px-4 py-3.5 rounded-xl border-2 bg-white/5 text-white text-base placeholder:text-white/35 backdrop-blur-md transition-all duration-200 focus:outline-none`;
@@ -519,7 +573,7 @@ export default function CreateCampaign() {
                 : 'Review & Launch'}
             </div>
           </div>
-  
+
 
           {/* ── Form card ── */}
           <div

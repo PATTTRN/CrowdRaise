@@ -7,20 +7,40 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
 
-interface Campaign {
-  id: string;
-  type: 'fundraiser' | 'occasion' | 'tips';
+interface Donation {
+  _id: string;
+  supporterName?: string;
+  supporterEmail?: string;
+  collectionTitle?: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+}
+
+interface Collection {
+  _id: string;
   title: string;
-  category: string;
-  creator: string;
-  creatorEmail: string;
-  location: string;
-  goal: number;
   description: string;
-  status: 'pending' | 'approved' | 'rejected';
-  submittedAt: string;
-  image: string;
-  reason?: string;
+  status: string;
+  category: string;
+  type: string;
+  goal: number;
+  raised: number;
+  createdAt: string;
+  primaryImage?: { url: string };
+  images?: { url: string }[];
+  creator?: {
+    name: string;
+    email: string;
+  };
+}
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  isEmailVerified: boolean;
 }
 
 interface Withdrawal {
@@ -51,13 +71,18 @@ interface PlatformStats {
   totalContributions: number;
 }
 
+// Make a union for the tab types
+type TabType = 'overview' | 'pending' | 'approved' | 'rejected' | 'withdrawals' | 'users';
+
 export default function AdminDashboardPage() {
   const { user, isAuthenticated } = useAuthStore();
   const router = useRouter();
 
-  const [collections, setCollections] = useState<any[]>([]);
-  const [filteredCollections, setFilteredCollections] = useState<any[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [filteredCollections, setFilteredCollections] = useState<Collection[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [allDonations, setAllDonations] = useState<Donation[]>([]);
   const [stats, setStats] = useState<PlatformStats>({
     totalCollections: 0,
     pendingCollections: 0,
@@ -67,9 +92,7 @@ export default function AdminDashboardPage() {
     platformRevenue: 0,
     totalContributions: 0
   });
-  const [selectedTab, setSelectedTab] = useState<'overview' | 'pending' | 'approved' | 'rejected' | 'withdrawals' | 'users'>('overview');
-  const [users, setUsers] = useState<any[]>([]);
-  const [allDonations, setAllDonations] = useState<any[]>([]);
+  const [selectedTab, setSelectedTab] = useState<TabType>('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,9 +116,9 @@ export default function AdminDashboardPage() {
 
       setStats({
         totalCollections: colsRes.data.length,
-        pendingCollections: colsRes.data.filter((c: any) => c.status === 'pending').length,
-        approvedCollections: colsRes.data.filter((c: any) => c.status === 'active').length,
-        rejectedCollections: colsRes.data.filter((c: any) => c.status === 'rejected').length,
+        pendingCollections: colsRes.data.filter((c: Collection) => c.status === 'pending').length,
+        approvedCollections: colsRes.data.filter((c: Collection) => c.status === 'active').length,
+        rejectedCollections: colsRes.data.filter((c: Collection) => c.status === 'rejected').length,
         totalRaised: revRes.summary.totalGrossDonated,
         platformRevenue: revRes.summary.totalPlatformRevenue,
         totalContributions: revRes.summary.totalContributions
@@ -110,12 +133,12 @@ export default function AdminDashboardPage() {
       }
 
       // 5. Get recent global donations (could add a global endpoint in backend)
-      // For now, we can fetch all contributions if the admin has access
       try {
-        const donationsRes = await api.get('/contributions/admin/all'); // Assuming we add this or similar
-        setAllDonations(donationsRes.data);
+        const donationsRes = await api.get('/contributions/admin/all');
+        // Ensure donationsRes.data is an array of Donation objects
+        setAllDonations(donationsRes.data as Donation[]);
       } catch (e) {
-        console.warn('Global donations fetch failed');
+        console.warn('Global donations fetch failed', e);
       }
     } catch (error) {
       toast.error('Failed to load dashboard data');
@@ -138,7 +161,6 @@ export default function AdminDashboardPage() {
     if (particlesRef.current) {
       const container = particlesRef.current;
       const particleCount = 30;
-      // Clear any existing particles to avoid duplicates
       while (container.firstChild) {
         container.removeChild(container.firstChild);
       }
@@ -152,26 +174,23 @@ export default function AdminDashboardPage() {
         container.appendChild(particle);
       }
     }
-  // Only run this effect on mount and on auth/user change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user]);
 
   useEffect(() => {
     let filtered = collections;
 
-    // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter((col: any) =>
+      filtered = filtered.filter((col: Collection) =>
         col.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         col.creator?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         col.category?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    // Filter by status
     if (selectedStatus && selectedStatus !== 'all') {
       const targetStatus = selectedStatus === 'approved' ? 'active' : selectedStatus;
-      filtered = filtered.filter((col: any) => col.status === targetStatus);
+      filtered = filtered.filter((col: Collection) => col.status === targetStatus);
     }
 
     setFilteredCollections(filtered);
@@ -193,11 +212,11 @@ export default function AdminDashboardPage() {
   const handleReject = async (id: string, reason: string) => {
     try {
       setIsProcessing(id);
-      await collectionService.updateCollection(id, { status: 'rejected' });
+      await collectionService.updateCollection(id, { status: 'rejected', rejectionReason: reason });
       toast.success('Collection rejected');
       fetchData(true);
     } catch (error) {
-      toast.error('Failed to reject collection');
+      toast.error('Failed to reject collection. ' + error);
     } finally {
       setIsProcessing(null);
     }
@@ -223,11 +242,23 @@ export default function AdminDashboardPage() {
       await withdrawalService.adminApprove(id);
       toast.success('Withdrawal approved and transfer initiated!');
       fetchData(true);
-    } catch (error: any) {
-      // Type guard for error shape
-      const errMsg =
-        (error && typeof error === 'object' && 'response' in error && (error as any).response?.data?.error) ||
-        'Failed to approve withdrawal';
+    } catch (error) {
+      // Copied error handling with typed error for response object
+      let errMsg = 'Failed to approve withdrawal. ' + error;
+      if (
+        error &&
+        typeof error === 'object' &&
+        // Error may be AxiosError with a .response property
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response &&
+        typeof error.response.data === 'object' &&
+        error.response.data &&
+        'error' in error.response.data
+      ) {
+        errMsg = (error.response.data as { error?: string }).error || errMsg;
+      }
       toast.error(errMsg);
     } finally {
       setIsProcessing(null);
@@ -311,10 +342,6 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // const toggleMobileMenu = () => {
-  //   setIsMobileMenuOpen(!isMobileMenuOpen);
-  // };
-
   if (isLoading) {
     return (
       <>
@@ -381,7 +408,7 @@ export default function AdminDashboardPage() {
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setSelectedTab(tab.id as any)}
+                  onClick={() => setSelectedTab(tab.id as TabType)}
                   className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base font-medium transition-all duration-300 cursor-pointer ${
                     selectedTab === tab.id
                       ? 'bg-gradient-to-r from-red-400 to-cyan-400 text-white shadow-lg'
@@ -474,7 +501,7 @@ export default function AdminDashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10">
-                      {(allDonations || []).slice(0, 10).map((donation: any) => (
+                      {(allDonations || []).slice(0, 10).map((donation) => (
                         <tr key={donation._id} className="hover:bg-white/5 transition-colors">
                           <td className="px-6 py-4">
                             <div className="text-white font-medium">{donation.supporterName || 'Anonymous'}</div>

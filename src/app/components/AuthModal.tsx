@@ -12,6 +12,15 @@ interface AuthModalProps {
   initialMode?: 'login' | 'register';
 }
 
+// For proper error typing - for axios errors
+interface AxiosErrorResponse {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
+
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'login' }) => {
   const [mode, setMode] = useState<'login' | 'register' | 'verify'>(initialMode);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,8 +62,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
         toast.success('Email verified successfully!');
         onClose();
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'An error occurred');
+    } catch (error) {
+      const err = error as AxiosErrorResponse;
+      toast.error(err.response?.data?.message || 'An error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -65,8 +75,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
       setIsLoading(true);
       await api.post('/auth/email/send-otp');
       toast.success('New verification code sent!');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to resend code');
+    } catch (error) {
+      const err = error as AxiosErrorResponse;
+      toast.error(err.response?.data?.message || 'Failed to resend code');
     } finally {
       setIsLoading(false);
     }

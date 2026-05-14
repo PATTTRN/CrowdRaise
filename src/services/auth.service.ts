@@ -1,12 +1,12 @@
 import api from '@/lib/axios';
 
 export const authService = {
-  register: async (userData: any) => {
+  register: async (userData: Record<string, unknown>) => {
     const response = await api.post('/auth/register', userData);
     return response.data;
   },
 
-  login: async (credentials: any) => {
+  login: async (credentials: Record<string, unknown>) => {
     const response = await api.post('/auth/login', credentials);
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);

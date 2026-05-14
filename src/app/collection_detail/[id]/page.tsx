@@ -122,13 +122,23 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
         collectionService.getCollectionById(id),
         contributionService.getCollectionContributions(id)
       ]);
-      setCampaign(details);
+      setCampaign(details.data || details);
       setContributions(contribs.data);
-      const pct = details.goal ? Math.min((details.raised / details.goal) * 100, 100) : 100;
+      const data = details.data || details;
+      const pct = data.goal ? Math.min((data.raised / data.goal) * 100, 100) : 100;
       setTimeout(() => setProgressWidth(pct), 500);
-    } catch (error: any) {
+    } catch (error) {
       // Axios interceptor will handle 401s
-      if (error.response?.status !== 401) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof (error as { response?: { status?: number } }).response?.status === "number"
+      ) {
+        if ((error as { response: { status: number } }).response.status !== 401) {
+          toast.error('Failed to load collection details');
+        }
+      } else {
         toast.error('Failed to load collection details');
       }
     } finally {
@@ -202,7 +212,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
 
       const popup = new PaystackPop();
       popup.resumeTransaction(accessCode, {
-        onSuccess: async (_transaction: any) => {
+        onSuccess: async () => {
           try {
             toast.info('Verifying payment...');
             await contributionService.confirmContribution(contributionId);
@@ -396,7 +406,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                             ₦{d.amount.toLocaleString()}
                           </span>
                         </div>
-                        {d.message && <div className="text-white/60 text-xs mt-1.5 leading-relaxed italic">"{d.message}"</div>}
+                        {d.message && <div className="text-white/60 text-xs mt-1.5 leading-relaxed italic">&quot;{d.message}&quot;</div>}
                         <div className="text-white/40 text-[10px] mt-2 uppercase font-medium tracking-wider">{new Date(d.createdAt).toLocaleDateString()}</div>
                       </div>
                     </div>
@@ -484,13 +494,13 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleDonate}
-                  disabled={isDonating || (!selectedAmount && (!customAmount || parseInt(customAmount) <= 0)) || !supporterEmail}
-                  className="w-full py-4 rounded-full font-bold text-lg text-white border-none transition-all duration-300 mb-4 flex items-center justify-center gap-2 hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50"
-                  style={{ background: config.accentGradient }}
-                >
+                  <button
+                    type="button"
+                    onClick={handleDonate}
+                    disabled={isDonating || (!selectedAmount && (!customAmount || parseInt(customAmount, 10) <= 0)) || !supporterEmail}
+                    className="w-full py-4 rounded-full font-bold text-lg text-white border-none transition-all duration-300 mb-4 flex items-center justify-center gap-2 hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50"
+                    style={{ background: config.accentGradient }}
+                  >
                   {isDonating ? <><i className="fas fa-circle-notch fa-spin"></i> {config.actionVerb}…</> : <>{config.supportIcon} {config.supportLabel}</>}
                 </button>
 

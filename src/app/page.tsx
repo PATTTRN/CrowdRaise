@@ -201,12 +201,13 @@ const HomePage: React.FC = () => {
     window.addEventListener("scroll", handleScroll);
 
     let observer: IntersectionObserver | null = null;
-    if (heroStatsRef.current) {
-      const statNumbers = heroStatsRef.current.querySelectorAll(".stat-number");
+    const currentHeroStats = heroStatsRef.current;
+    if (typeof window !== "undefined" && currentHeroStats) {
       observer = new window.IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
+              const statNumbers = entry.target.querySelectorAll(".stat-number");
               statNumbers.forEach((stat, i) => {
                 const { value, suffix, prefix } = HERO_STATS[i];
                 setTimeout(
@@ -227,13 +228,13 @@ const HomePage: React.FC = () => {
         },
         { threshold: 0.5, rootMargin: "0px 0px -100px 0px" }
       );
-      observer.observe(heroStatsRef.current);
+      observer.observe(currentHeroStats);
     }
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      if (observer && heroStatsRef.current)
-        observer.unobserve(heroStatsRef.current);
+      if (observer && currentHeroStats)
+        observer.unobserve(currentHeroStats);
     };
   }, []);
 

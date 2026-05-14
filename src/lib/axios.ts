@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { toast } from 'sonner';
+import { useAuthStore } from '../store/authStore';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000', // https://crowdraise-backend.onrender.com
@@ -32,7 +33,6 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         // Accessing store outside of React component
-        const { useAuthStore } = require('../store/authStore');
         useAuthStore.getState().logout();
         
         // Notify user and open modal
