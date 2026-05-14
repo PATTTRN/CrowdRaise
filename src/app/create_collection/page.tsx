@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
@@ -150,7 +150,7 @@ type FormState = {
   isAnonymous: boolean;
 };
 
-// ─── Hero Fullscreen Carousel ────────────────────────────────────────────────
+// ─── Hero Fullscreen Carousel ─────────────────────────────────────────────────
 function FullHeroCarousel({
   selectedType,
   setSelectedType,
@@ -255,12 +255,45 @@ function FullHeroCarousel({
   );
 }
 
+// ─── Suspense wrapper for useSearchParams ─────────────────────────────────────
+function SearchParamsInitializer({
+  children,
+}: {
+  children: (searchParams: ReturnType<typeof useSearchParams>) => React.ReactNode;
+}) {
+  const searchParams = useSearchParams();
+  return <>{children(searchParams)}</>;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function CreateCampaign() {
   const { user, isAuthenticated } = useAuthStore();
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const initialType = (searchParams.get('type') as CollectionType) || 'fundraiser';
+
+  return (
+    <Suspense fallback={null}>
+      <SearchParamsInitializer>
+        {(searchParams) => {
+          const initialType = (searchParams.get('type') as CollectionType) || 'fundraiser';
+
+          // Your state and logic initialization
+          // (Move _all_ existing logic here that uses initialType, possibly via a sub-component)
+
+          // We move the huge inner component so logic using initialType,
+          // selectedType, etc all lives here (not top level scope).
+          // To keep the logic unchanged, we can define everything here as originally.
+          return <CreateCampaignInner initialType={initialType} />;
+        }}
+      </SearchParamsInitializer>
+    </Suspense>
+  );
+}
+
+// All the actual component logic goes here, with initialType passed explicitly.
+function CreateCampaignInner({ initialType }: { initialType: CollectionType }) {
+  // Existing inner logic, e.g.:
+  const { user, isAuthenticated } = useAuthStore();
+  const router = useRouter();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedType, setSelectedType] = useState<CollectionType>(initialType);
