@@ -30,8 +30,8 @@ const Header: React.FC = () => {
       <nav className="fixed top-0 w-full z-50 bg-neutral-950/80 backdrop-blur-lg border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">
-              CrowdRaise
+            <Link href="/" className="flex items-center justify-center h-full">
+              <img src="./raise_logo.png" alt="" height={100} width={100} />
             </Link>
 
             {/* Desktop Navigation */}

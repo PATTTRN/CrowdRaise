@@ -7,6 +7,7 @@ const Footer: React.FC = () => {
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row flex-wrap gap-8 md:gap-0 justify-between items-start">
         {/* Brand */}
         <div className="min-w-[200px] flex-1 mb-8 md:mb-0">
+          <img src="./raise_logo.png" height={100} width={100} alt="" />
           <div className="font-bold text-2xl text-[#4ecdc4] mb-2 tracking-wide">
             CrowdRaise
           </div>
