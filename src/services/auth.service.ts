@@ -1,45 +1,42 @@
 import api from '@/lib/axios';
+import { useAuthStore } from '@/store/authStore';
+import type { ApiResponse, User, RegisterPayload, LoginPayload } from '@/lib/api-types';
 
 export const authService = {
-  register: async (userData: Record<string, unknown>) => {
-    const response = await api.post('/auth/register', userData);
+  register: async (userData: RegisterPayload) => {
+    const response = await api.post<ApiResponse<{ user: User; token: string }>>('/auth/register', userData);
     return response.data;
   },
 
-  login: async (credentials: Record<string, unknown>) => {
-    const response = await api.post('/auth/login', credentials);
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+  login: async (credentials: LoginPayload) => {
+    const response = await api.post<ApiResponse<{ user: User; token: string }>>('/auth/login', credentials);
+    if (response.data.data) {
+      const { user, token } = response.data.data;
+      useAuthStore.getState().setAuth(user, token);
     }
     return response.data;
   },
 
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    useAuthStore.getState().logout();
   },
 
   getCurrentUser: () => {
-    if (typeof window !== 'undefined') {
-      const user = localStorage.getItem('user');
-      return user ? JSON.parse(user) : null;
-    }
-    return null;
+    return useAuthStore.getState().user;
   },
 
   sendOtp: async () => {
-    const response = await api.post('/auth/email/send-otp');
+    const response = await api.post<ApiResponse<unknown>>('/auth/email/send-otp');
     return response.data;
   },
 
   verifyOtp: async (otp: string) => {
-    const response = await api.post('/auth/email/verify-otp', { otp });
+    const response = await api.post<ApiResponse<unknown>>('/auth/email/verify-otp', { otp });
     return response.data;
   },
 
   getUserDetails: async (userId: string) => {
-    const response = await api.get(`/auth/user/${userId}`);
+    const response = await api.get<ApiResponse<User>>(`/auth/user/${userId}`);
     return response.data;
   },
 };

@@ -1,102 +1,124 @@
+"use client";
 import Link from "next/link";
 import React from "react";
+import { Mail, MapPin, Globe, MessageCircle, Camera } from "lucide-react";
 
 const Footer: React.FC = () => {
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
   return (
-    <footer className="bg-[#1e1e28]/[0.98] border-t border-white/10 pt-10 pb-6 px-4 text-white/85">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row flex-wrap gap-8 md:gap-0 justify-between items-start">
-        {/* Brand */}
-        <div className="min-w-[200px] flex-1 mb-8 md:mb-0">
-          <img src="./raise_logo.png" height={100} width={100} alt="" />
-          <div className="font-bold text-2xl text-[#4ecdc4] mb-2 tracking-wide">
-            CrowdRaise
+    <footer className="bg-white border-t border-border py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid md:grid-cols-4 gap-8">
+          {/* Brand */}
+          <div className="md:col-span-1">
+            <div className="text-xl font-bold bg-gradient-to-r from-rose-500 via-rose-500 to-cyan-500 bg-clip-text text-transparent mb-3">
+              CrowdRaise
+            </div>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              The transparent fundraising platform for Africa &amp; beyond.
+            </p>
           </div>
-          <div className="text-base text-white/70">
-            The transparent fundraising platform for Africa &amp; beyond.
+
+          {/* Quick Links */}
+          <div>
+            <h4 className="font-semibold text-foreground mb-3">Quick Links</h4>
+            <ul className="space-y-2">
+              {[
+                { href: "/", label: "Home" },
+                { href: "/explore", label: "Explore Collections" },
+                { href: "/create_collection", label: "Create Collection" },
+              ].map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    onClick={scrollToTop}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-        {/* Quick Links */}
-        <div className="min-w-[150px] flex-1 mb-8 md:mb-0">
-          <div className="font-semibold mb-2">Quick Links</div>
-          <ul className="space-y-1 text-white/85">
-            <li>
-              <Link href="/" className="hover:text-[#4ecdc4] transition-colors">
-                Home
-              </Link>
-            </li>
-            <li>
-              <a href="/explore" className="hover:text-[#4ecdc4] transition-colors">
-                Explore Collections
-              </a>
-            </li>
-            <li>
-              <a href="/create_collection" className="hover:text-[#4ecdc4] transition-colors">
-                Create Collection
-              </a>
-            </li>
-            <li>
-              <a href="#about" className="hover:text-[#4ecdc4] transition-colors">
-                About
-              </a>
-            </li>
-            <li>
-              <a href="#contact" className="hover:text-[#4ecdc4] transition-colors">
-                Contact
-              </a>
-            </li>
-          </ul>
-        </div>
-        {/* Contact */}
-        <div className="min-w-[180px] flex-1">
-          <div className="font-semibold mb-2">Contact</div>
-          <div className="text-base text-white/70">
-            <div>
+
+          {/* Collection Types */}
+          <div>
+            <h4 className="font-semibold text-foreground mb-3">Collections</h4>
+            <ul className="space-y-2">
+              {[
+                { href: "/create_collection?type=fundraiser", label: "Start a Fundraiser" },
+                { href: "/create_collection?type=occasion", label: "Create a Gift Page" },
+                { href: "/create_collection?type=tips", label: "Set Up Tips" },
+                { href: "/explore", label: "Browse All" },
+              ].map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    onClick={scrollToTop}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <h4 className="font-semibold text-foreground mb-3">Contact</h4>
+            <div className="space-y-2">
               <a
                 href="mailto:hello@crowdraise.com"
-                className="text-[#4ecdc4] hover:underline"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
+                <Mail className="size-4" />
                 hello@crowdraise.com
               </a>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="size-4" />
+                Lagos, Nigeria
+              </div>
             </div>
-            <div className="mt-2 text-white/50 text-sm">Lagos, Nigeria</div>
-          </div>
-          <div className="mt-4 flex gap-4">
-            <a
-              href="https://twitter.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Twitter"
-              className="text-[#4ecdc4] text-xl hover:scale-110 transition-transform"
-            >
-              <i className="fab fa-twitter" />
-            </a>
-            <a
-              href="https://facebook.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Facebook"
-              className="text-[#4ecdc4] text-xl hover:scale-110 transition-transform"
-            >
-              <i className="fab fa-facebook" />
-            </a>
-            <a
-              href="https://instagram.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram"
-              className="text-[#4ecdc4] text-xl hover:scale-110 transition-transform"
-            >
-              <i className="fab fa-instagram" />
-            </a>
+            <div className="flex gap-3 mt-4">
+              <a
+                href="https://twitter.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Twitter"
+                className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+              >
+                <Globe className="size-4" />
+              </a>
+              <a
+                href="https://facebook.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook"
+                className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+              >
+                <MessageCircle className="size-4" />
+              </a>
+              <a
+                href="https://instagram.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+              >
+                <Camera className="size-4" />
+              </a>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="text-center mt-10 text-white/40 text-sm tracking-wide">
-        &copy; {new Date().getFullYear()} CrowdRaise. All rights reserved.
+
+        <div className="mt-10 pt-6 border-t border-border text-center text-muted-foreground text-sm">
+          &copy; {new Date().getFullYear()} CrowdRaise. All rights reserved.
+        </div>
       </div>
     </footer>
   );
 };
 
 export default Footer;
-

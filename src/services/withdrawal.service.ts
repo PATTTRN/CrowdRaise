@@ -1,66 +1,55 @@
 import api from '@/lib/axios';
+import type { ApiResponse, Bank, SaveBankDetailsPayload, Balance, Withdrawal } from '@/lib/api-types';
 
 export const withdrawalService = {
-  // List Nigerian banks for the dropdown
   getBanks: async () => {
-    const response = await api.get('/withdrawals/banks');
-    return response.data; // { data: Bank[] }
+    const response = await api.get<ApiResponse<Bank[]>>('/withdrawals/banks');
+    return response.data;
   },
 
-  // Verify a bank account number — returns { accountName }
   verifyAccount: async (accountNumber: string, bankCode: string) => {
-    const response = await api.post('/withdrawals/verify-account', { accountNumber, bankCode });
+    const response = await api.post<ApiResponse<{ accountName: string }>>('/withdrawals/verify-account', { accountNumber, bankCode });
     return response.data;
   },
 
-  // Save (or update) the creator's bank details on their profile
-  saveBankDetails: async (details: {
-    accountNumber: string;
-    bankCode: string;
-    accountName: string;
-    bankName: string;
-  }) => {
-    const response = await api.put('/withdrawals/bank-details', details);
+  saveBankDetails: async (details: SaveBankDetailsPayload) => {
+    const response = await api.put<ApiResponse<unknown>>('/withdrawals/bank-details', details);
     return response.data;
   },
 
-  // Get the creator's balance breakdown
   getBalance: async () => {
-    const response = await api.get('/withdrawals/balance');
-    return response.data; // { totalEarned, totalPaid, pendingAmount, available }
-  },
-
-  // Submit a withdrawal request
-  requestWithdrawal: async (amount: number) => {
-    const response = await api.post('/withdrawals/request', { amount });
+    const response = await api.get<ApiResponse<Balance>>('/withdrawals/balance');
     return response.data;
   },
 
-  // Get the creator's withdrawal history
-  getMyWithdrawals: async () => {
-    const response = await api.get('/withdrawals/my');
-    return response.data; // { count, data: Withdrawal[] }
+  requestWithdrawal: async (amount: number) => {
+    const response = await api.post<ApiResponse<Withdrawal>>('/withdrawals/request', { amount });
+    return response.data;
   },
 
-  // ── Admin ──────────────────────────────────────────────────────────────────
+  getMyWithdrawals: async () => {
+    const response = await api.get<ApiResponse<Withdrawal[]>>('/withdrawals/my');
+    return response.data;
+  },
+
   adminGetAll: async (status?: string) => {
     const params = status ? `?status=${status}` : '';
-    const response = await api.get(`/withdrawals/admin/all${params}`);
+    const response = await api.get<ApiResponse<Withdrawal[]>>(`/withdrawals/admin/all${params}`);
     return response.data;
   },
 
   adminApprove: async (id: string) => {
-    const response = await api.patch(`/withdrawals/${id}/approve`);
+    const response = await api.patch<ApiResponse<Withdrawal>>(`/withdrawals/${id}/approve`);
     return response.data;
   },
 
   adminReject: async (id: string, reason: string) => {
-    const response = await api.patch(`/withdrawals/${id}/reject`, { reason });
+    const response = await api.patch<ApiResponse<Withdrawal>>(`/withdrawals/${id}/reject`, { reason });
     return response.data;
   },
 
   adminComplete: async (id: string) => {
-    const response = await api.patch(`/withdrawals/${id}/complete`);
+    const response = await api.patch<ApiResponse<Withdrawal>>(`/withdrawals/${id}/complete`);
     return response.data;
   },
 };

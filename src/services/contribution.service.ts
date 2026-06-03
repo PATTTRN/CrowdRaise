@@ -1,31 +1,24 @@
 import api from '@/lib/axios';
+import type { ApiResponse, Contribution, InitializeContributionPayload, RevenueSummary } from '@/lib/api-types';
 
 export const contributionService = {
-  initializeContribution: async (contributionData: {
-    collectionId: string;
-    amount: number;
-    message?: string;
-    isAnonymous?: boolean;
-    supporterName?: string;
-    supporterEmail?: string;
-    currency?: string;
-  }) => {
-    const response = await api.post('/contributions', contributionData);
-    return response.data; // { message, data: contribution, access_code }
+  initializeContribution: async (contributionData: InitializeContributionPayload) => {
+    const response = await api.post<ApiResponse<{ _id: string }> & { access_code: string }>('/contributions', contributionData);
+    return response.data;
   },
 
   confirmContribution: async (contributionId: string) => {
-    const response = await api.post(`/contributions/${contributionId}/confirm`);
+    const response = await api.post<ApiResponse<Contribution>>(`/contributions/${contributionId}/confirm`);
     return response.data;
   },
 
   getCollectionContributions: async (collectionId: string) => {
-    const response = await api.get(`/contributions/collection/${collectionId}`);
+    const response = await api.get<ApiResponse<Contribution[]>>(`/contributions/collection/${collectionId}`);
     return response.data;
   },
 
   getRevenueSummary: async () => {
-    const response = await api.get('/contributions/admin/revenue');
+    const response = await api.get<{ summary: RevenueSummary }>('/contributions/admin/revenue');
     return response.data;
   },
 };

@@ -3,7 +3,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import { AuthModalProvider } from "@/components/AuthModalProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { AnimatePresenceWrapper } from "@/components/AnimatePresenceWrapper";
+import { ErrorBoundaryWrapper } from "@/components/ErrorBoundaryWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Create Campaign - DonateFlow",
-  description: "Create your fundraising campaign and start raising funds in minutes",
+  title: "CrowdRaise - Money Collection Made Beautifully Simple",
+  description: "Raise funds, collect gifts, and receive tips — all in one beautiful platform.",
 };
 
 export default function RootLayout({
@@ -27,22 +30,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link 
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-          rel="stylesheet" 
-        />
-        <script src="https://js.paystack.co/v1/inline.js" async></script>
-      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
         <Header />
-        <div className="pt-8">
-          {children}
-        </div>
+        <main className="pt-[var(--header-height)]">
+          <ErrorBoundaryWrapper>
+            <AnimatePresenceWrapper>{children}</AnimatePresenceWrapper>
+          </ErrorBoundaryWrapper>
+        </main>
         <Footer />
         <Toaster position="top-right" richColors />
+        <AuthModalProvider />
       </body>
     </html>
   );

@@ -1,151 +1,76 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { collectionService, contributionService, withdrawalService } from '@/services';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
+import { ParticleBackground } from '@/components/ParticleBackground';
+import { StatCard } from '@/components/shared';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { statusStyle, statusLabel } from '@/lib/status';
+import type { Collection, Contribution, Withdrawal, PlatformStats, User } from '@/lib/api-types';
+import { LayoutDashboard, Clock, CheckCircle, XCircle, Users, Wallet, TrendingUp, DollarSign, Landmark, History, Shield, Search, Trash2, Check, X, Loader2, Inbox } from 'lucide-react';
 
-interface Donation {
-  _id: string;
-  supporterName?: string;
-  supporterEmail?: string;
-  collectionTitle?: string;
-  amount: number;
-  status: string;
-  createdAt: string;
-}
-
-interface Collection {
-  _id: string;
-  title: string;
-  description: string;
-  status: string;
-  category: string;
-  type: string;
-  goal: number;
-  raised: number;
-  createdAt: string;
-  primaryImage?: { url: string };
-  images?: { url: string }[];
-  creator?: {
-    name: string;
-    email: string;
-  };
-}
-
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  role: string;
-  isEmailVerified: boolean;
-}
-
-interface Withdrawal {
-  _id: string;
-  creator: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-  amount: number;
-  bankDetails: {
-    accountNumber: string;
-    bankName: string;
-    accountName: string;
-  };
-  status: 'pending' | 'approved' | 'processing' | 'completed' | 'rejected';
-  createdAt: string;
-  adminNote?: string;
-}
-
-interface PlatformStats {
-  totalCollections: number;
-  pendingCollections: number;
-  approvedCollections: number;
-  rejectedCollections: number;
-  totalRaised: number;
-  platformRevenue: number;
-  totalContributions: number;
-}
-
-// Make a union for the tab types
 type TabType = 'overview' | 'pending' | 'approved' | 'rejected' | 'withdrawals' | 'users';
 
 export default function AdminDashboardPage() {
   const { user, isAuthenticated } = useAuthStore();
   const router = useRouter();
+  useEffect(() => { document.title = 'Admin Dashboard - CrowdRaise'; }, []);
 
   const [collections, setCollections] = useState<Collection[]>([]);
   const [filteredCollections, setFilteredCollections] = useState<Collection[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [allDonations, setAllDonations] = useState<Donation[]>([]);
+  const [allDonations, setAllDonations] = useState<Contribution[]>([]);
   const [stats, setStats] = useState<PlatformStats>({
-    totalCollections: 0,
-    pendingCollections: 0,
-    approvedCollections: 0,
-    rejectedCollections: 0,
-    totalRaised: 0,
-    platformRevenue: 0,
-    totalContributions: 0
+    totalCollections: 0, pendingCollections: 0, approvedCollections: 0,
+    rejectedCollections: 0, totalRaised: 0, platformRevenue: 0, totalContributions: 0,
   });
   const [selectedTab, setSelectedTab] = useState<TabType>('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
-  const particlesRef = useRef<HTMLDivElement>(null);
+  const [deleteCollectionConfirm, setDeleteCollectionConfirm] = useState<string | null>(null);
+  const [deleteUserConfirm, setDeleteUserConfirm] = useState<string | null>(null);
 
   const fetchData = async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
-      // 1. Get all collections
-      const colsRes = await collectionService.getAllCollections();
+      const [colsRes, revRes, withRes] = await Promise.all([
+        collectionService.getAllCollections(),
+        contributionService.getRevenueSummary(),
+        withdrawalService.adminGetAll(),
+      ]);
       setCollections(colsRes.data);
       setFilteredCollections(colsRes.data);
-
-      // 2. Get revenue summary
-      const revRes = await contributionService.getRevenueSummary();
-      
-      // 3. Get withdrawals
-      const withRes = await withdrawalService.adminGetAll();
       setWithdrawals(withRes.data);
-
       setStats({
         totalCollections: colsRes.data.length,
-        pendingCollections: colsRes.data.filter((c: Collection) => c.status === 'pending').length,
-        approvedCollections: colsRes.data.filter((c: Collection) => c.status === 'active').length,
-        rejectedCollections: colsRes.data.filter((c: Collection) => c.status === 'rejected').length,
+        pendingCollections: colsRes.data.filter((c) => c.status === 'pending').length,
+        approvedCollections: colsRes.data.filter((c) => c.status === 'active').length,
+        rejectedCollections: colsRes.data.filter((c) => c.status === 'rejected').length,
         totalRaised: revRes.summary.totalGrossDonated,
         platformRevenue: revRes.summary.totalPlatformRevenue,
-        totalContributions: revRes.summary.totalContributions
+        totalContributions: revRes.summary.totalContributions,
       });
-
-      // 4. Get All Users
       try {
-        const usersRes = await api.get('/auth/users');
+        const [usersRes, donationsRes] = await Promise.all([
+          api.get<{ data: User[] }>('/auth/users'),
+          api.get<Contribution[]>('/contributions/admin/all'),
+        ]);
         setUsers(usersRes.data.data);
-      } catch (e) {
-        console.warn('Admin users endpoint failed', e);
-      }
-
-      // 5. Get recent global donations (could add a global endpoint in backend)
-      try {
-        const donationsRes = await api.get('/contributions/admin/all');
-        // Ensure donationsRes.data is an array of Donation objects
-        setAllDonations(donationsRes.data as Donation[]);
-      } catch (e) {
-        console.warn('Global donations fetch failed', e);
-      }
-    } catch (error) {
-      toast.error('Failed to load dashboard data');
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
+        setAllDonations(donationsRes.data);
+      } catch { /* non-critical */ }
+    } catch { toast.error('Failed to load dashboard data'); }
+    finally { if (!silent) setIsLoading(false); }
   };
 
   useEffect(() => {
@@ -154,679 +79,311 @@ export default function AdminDashboardPage() {
       router.push('/');
       return;
     }
-    if (isAuthenticated) {
-      fetchData();
-    }
-    // Create floating particles
-    if (particlesRef.current) {
-      const container = particlesRef.current;
-      const particleCount = 30;
-      while (container.firstChild) {
-        container.removeChild(container.firstChild);
-      }
-      for (let i = 0; i < particleCount; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'particle';
-        particle.style.left = Math.random() * 100 + '%';
-        particle.style.top = Math.random() * 100 + '%';
-        particle.style.animationDelay = Math.random() * 6 + 's';
-        particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
-        container.appendChild(particle);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (isAuthenticated) fetchData();
   }, [isAuthenticated, user]);
 
   useEffect(() => {
     let filtered = collections;
-
     if (searchTerm) {
-      filtered = filtered.filter((col: Collection) =>
+      filtered = filtered.filter((col) =>
         col.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         col.creator?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         col.category?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
     if (selectedStatus && selectedStatus !== 'all') {
-      const targetStatus = selectedStatus === 'approved' ? 'active' : selectedStatus;
-      filtered = filtered.filter((col: Collection) => col.status === targetStatus);
+      filtered = filtered.filter((col) => col.status === (selectedStatus === 'approved' ? 'active' : selectedStatus));
     }
-
     setFilteredCollections(filtered);
   }, [collections, searchTerm, selectedStatus]);
 
   const handleApprove = async (id: string) => {
-    try {
-      setIsProcessing(id);
-      await collectionService.updateCollection(id, { status: 'active' });
-      toast.success('Collection approved!');
-      fetchData(true);
-    } catch (error) {
-      toast.error('Failed to approve collection');
-    } finally {
-      setIsProcessing(null);
-    }
+    try { setIsProcessing(id); await collectionService.updateCollection(id, { status: 'active' }); toast.success('Collection approved!'); fetchData(true); }
+    catch { toast.error('Failed to approve collection'); } finally { setIsProcessing(null); }
   };
 
-  const handleReject = async (id: string, reason: string) => {
-    try {
-      setIsProcessing(id);
-      await collectionService.updateCollection(id, { status: 'rejected', rejectionReason: reason });
-      toast.success('Collection rejected');
-      fetchData(true);
-    } catch (error) {
-      toast.error('Failed to reject collection. ' + error);
-    } finally {
-      setIsProcessing(null);
-    }
+  const handleReject = async (id: string) => {
+    try { setIsProcessing(id); await collectionService.updateCollection(id, { status: 'rejected', rejectionReason: 'Insufficient documentation' }); toast.success('Collection rejected'); fetchData(true); }
+    catch { toast.error('Failed to reject collection'); } finally { setIsProcessing(null); }
   };
 
   const handleDeleteCollection = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this collection? This action is permanent.')) return;
-    try {
-      setIsProcessing(id);
-      await collectionService.deleteCollection(id);
-      toast.success('Collection deleted');
-      fetchData(true);
-    } catch (error) {
-      toast.error('Failed to delete collection');
-    } finally {
-      setIsProcessing(null);
-    }
+    try { setIsProcessing(id); await collectionService.deleteCollection(id); toast.success('Collection deleted'); fetchData(true); }
+    catch { toast.error('Failed to delete collection'); } finally { setIsProcessing(null); }
   };
 
   const handleApproveWithdrawal = async (id: string) => {
-    try {
-      setIsProcessing(id);
-      await withdrawalService.adminApprove(id);
-      toast.success('Withdrawal approved and transfer initiated!');
-      fetchData(true);
-    } catch (error) {
-      // Copied error handling with typed error for response object
-      let errMsg = 'Failed to approve withdrawal. ' + error;
-      if (
-        error &&
-        typeof error === 'object' &&
-        // Error may be AxiosError with a .response property
-        'response' in error &&
-        error.response &&
-        typeof error.response === 'object' &&
-        'data' in error.response &&
-        typeof error.response.data === 'object' &&
-        error.response.data &&
-        'error' in error.response.data
-      ) {
-        errMsg = (error.response.data as { error?: string }).error || errMsg;
-      }
-      toast.error(errMsg);
-    } finally {
-      setIsProcessing(null);
-    }
+    try { setIsProcessing(id); await withdrawalService.adminApprove(id); toast.success('Withdrawal approved!'); fetchData(true); }
+    catch { toast.error('Failed to approve withdrawal'); } finally { setIsProcessing(null); }
   };
 
   const handleRejectWithdrawal = async (id: string) => {
     const reason = window.prompt('Enter rejection reason:');
     if (reason === null) return;
-    try {
-      setIsProcessing(id);
-      await withdrawalService.adminReject(id, reason);
-      toast.success('Withdrawal rejected');
-      fetchData(true);
-    } catch (error) {
-      toast.error('Failed to reject withdrawal');
-    } finally {
-      setIsProcessing(null);
-    }
+    try { setIsProcessing(id); await withdrawalService.adminReject(id, reason); toast.success('Withdrawal rejected'); fetchData(true); }
+    catch { toast.error('Failed to reject withdrawal'); } finally { setIsProcessing(null); }
   };
 
   const handleCompleteWithdrawal = async (id: string) => {
-    try {
-      setIsProcessing(id);
-      await withdrawalService.adminComplete(id);
-      toast.success('Withdrawal marked as completed');
-      fetchData(true);
-    } catch (error) {
-      toast.error('Failed to complete withdrawal');
-    } finally {
-      setIsProcessing(null);
-    }
+    try { setIsProcessing(id); await withdrawalService.adminComplete(id); toast.success('Withdrawal completed'); fetchData(true); }
+    catch { toast.error('Failed to complete withdrawal'); } finally { setIsProcessing(null); }
   };
 
   const handleUpdateUserRole = async (userId: string, newRole: string) => {
-    try {
-      setIsProcessing(userId);
-      await api.patch(`/auth/user/${userId}/role`, { role: newRole });
-      toast.success(`User role updated to ${newRole}`);
-      fetchData(true);
-    } catch (error) {
-      toast.error('Failed to update user role');
-    } finally {
-      setIsProcessing(null);
-    }
+    try { setIsProcessing(userId); await api.patch(`/auth/user/${userId}/role`, { role: newRole }); toast.success(`User role updated to ${newRole}`); fetchData(true); }
+    catch { toast.error('Failed to update role'); } finally { setIsProcessing(null); }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!window.confirm('Are you sure? This will permanently delete the user.')) return;
-    try {
-      setIsProcessing(userId);
-      await api.delete(`/auth/user/${userId}`);
-      toast.success('User deleted');
-      fetchData(true);
-    } catch (error) {
-      toast.error('Failed to delete user');
-    } finally {
-      setIsProcessing(null);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'text-yellow-400 bg-yellow-400/10';
-      case 'approved':
-      case 'active': // Also include 'active' as approved status
-        return 'text-green-400 bg-green-400/10';
-      case 'rejected': return 'text-red-400 bg-red-400/10';
-      default: return 'text-white/60 bg-white/5';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'pending': return 'Pending Review';
-      case 'approved':
-      case 'active': // Also consider 'active' as Approved
-        return 'Approved';
-      case 'rejected': return 'Rejected';
-      default: return 'Unknown';
-    }
+    try { setIsProcessing(userId); await api.delete(`/auth/user/${userId}`); toast.success('User deleted'); fetchData(true); }
+    catch { toast.error('Failed to delete user'); } finally { setIsProcessing(null); }
   };
 
   if (isLoading) {
     return (
-      <>
-        <div className="bg-particles" id="particles" ref={particlesRef}></div>
-        <div className="min-h-screen bg-black flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-pink-500 mx-auto mb-4"></div>
-            <p className="text-white text-lg font-medium">Loading admin dashboard...</p>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black px-4 pt-20">
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-10 max-w-md text-center shadow-2xl relative z-10">
-          <div className="text-6xl mb-6">🔒</div>
-          <h2 className="text-3xl font-bold text-white mb-4">Admin Access</h2>
-          <p className="text-white/60 mb-8 leading-relaxed">
-            This area is restricted to administrators. Please log in with an authorized account to continue.
-          </p>
-          <button 
-            onClick={() => window.dispatchEvent(new CustomEvent('open-auth-modal'))}
-            className="w-full py-4 rounded-full font-bold text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer"
-            style={{ background: 'linear-gradient(135deg, #f43f5e, #fb923c)' }}
-          >
-            Login to Admin
-          </button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="size-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading admin dashboard...</p>
         </div>
       </div>
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <Card className="p-10 max-w-md text-center shadow-lg">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+            <Shield className="size-8 text-primary" />
+          </div>
+          <h2 className="text-3xl font-bold text-foreground mb-4">Admin Access</h2>
+          <p className="text-muted-foreground mb-8">This area is restricted to administrators. Please log in with an authorized account to continue.</p>
+          <Button size="lg" className="w-full" onClick={() => window.dispatchEvent(new CustomEvent('open-auth-modal'))}>
+            <Shield className="size-4" /> Login to Admin
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  const TABS = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'pending', label: 'Pending', icon: Clock, count: stats.pendingCollections },
+    { id: 'approved', label: 'Approved', icon: CheckCircle, count: stats.approvedCollections },
+    { id: 'rejected', label: 'Rejected', icon: XCircle, count: stats.rejectedCollections },
+    { id: 'withdrawals', label: 'Withdrawals', icon: Wallet, count: withdrawals.filter(w => w.status === 'pending').length },
+    { id: 'users', label: 'Users', icon: Users, count: users.length },
+  ];
+
   return (
     <>
-      <div className="bg-particles" id="particles" ref={particlesRef}></div>
-
-      {/* Main Content */}
-      <div className="pt-20 pb-8 px-4 sm:px-6 lg:px-8 relative z-10">
+      <ParticleBackground />
+      <div className="pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          
-          {/* Header */}
-          <div className="mb-8 sm:mb-12">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4">
-              Admin Dashboard
-            </h1>
-            <p className="text-white/80 text-base sm:text-lg">
-              Manage collections, monitor platform performance, and ensure quality control.
-            </p>
-          </div>
-
-          {/* Tab Navigation */}
           <div className="mb-8">
-            <div className="flex flex-wrap gap-2 sm:gap-4">
-              {[
-                { id: 'overview', label: 'Overview', icon: 'fas fa-chart-line' },
-                { id: 'pending', label: 'Pending Collections', icon: 'fas fa-clock', count: stats.pendingCollections },
-                { id: 'withdrawals', label: 'Withdrawal Requests', icon: 'fas fa-money-check-alt', count: withdrawals.filter(w => w.status === 'pending').length },
-                { id: 'users', label: 'Users', icon: 'fas fa-users', count: users.length },
-                { id: 'approved', label: 'Approved Collections', icon: 'fas fa-check-circle', count: stats.approvedCollections },
-                { id: 'rejected', label: 'Rejected Collections', icon: 'fas fa-times-circle', count: stats.rejectedCollections }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setSelectedTab(tab.id as TabType)}
-                  className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base font-medium transition-all duration-300 cursor-pointer ${
-                    selectedTab === tab.id
-                      ? 'bg-gradient-to-r from-red-400 to-cyan-400 text-white shadow-lg'
-                      : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
-                  }`}
-                >
-                  <i className={tab.icon}></i>
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  {tab.count !== undefined && tab.count > 0 && (
-                    <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground mb-2">Admin Dashboard</h1>
+            <p className="text-muted-foreground text-base sm:text-lg">Manage collections, monitor platform performance, and ensure quality control.</p>
           </div>
 
-          {/* Overview Tab */}
+          <div className="mb-8 flex flex-wrap gap-2">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button key={tab.id} onClick={() => setSelectedTab(tab.id as TabType)}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 cursor-pointer ${selectedTab === tab.id ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'}`}>
+                  <Icon className="size-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  {tab.count !== undefined && tab.count > 0 && (<span className="bg-foreground/10 text-foreground text-xs px-2 py-0.5 rounded-full">{tab.count}</span>)}
+                </button>
+              );
+            })}
+          </div>
+
           {selectedTab === 'overview' && (
-            <div className="space-y-6 sm:space-y-8">
-              {/* Stats Grid */}
+            <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {[
-                  { label: 'Total Collections', value: stats.totalCollections, icon: 'fas fa-bullhorn', color: 'from-blue-400 to-cyan-400' },
-                  { label: 'Pending Review', value: stats.pendingCollections, icon: 'fas fa-clock', color: 'from-yellow-400 to-orange-400' },
-                  { label: 'Total Raised (Gross)', value: `₦${stats.totalRaised.toLocaleString()}`, icon: 'fas fa-money-bill-wave', color: 'from-green-400 to-emerald-400' },
-                  { label: 'Platform Revenue', value: `₦${stats.platformRevenue.toLocaleString()}`, icon: 'fas fa-university', color: 'from-purple-400 to-pink-400' }
-                ].map((stat, index) => (
-                  <div key={index} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
-                        <i className={`${stat.icon} text-white text-lg`}></i>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl sm:text-3xl font-bold text-white">{stat.value}</div>
-                        <div className="text-white/60 text-sm">{stat.label}</div>
-                      </div>
-                    </div>
-                  </div>
+                  { label: 'Total Collections', value: stats.totalCollections, icon: LayoutDashboard },
+                  { label: 'Pending Review', value: stats.pendingCollections, icon: Clock },
+                  { label: 'Total Raised (Gross)', value: `₦${stats.totalRaised.toLocaleString()}`, icon: DollarSign },
+                  { label: 'Platform Revenue', value: `₦${stats.platformRevenue.toLocaleString()}`, icon: Landmark },
+                ].map((stat, i) => (
+                  <StatCard key={i} icon={<stat.icon className="size-5" />} label={stat.label} value={stat.value} />
                 ))}
               </div>
 
-              {/* User Stats */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-                <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-3">
-                    <i className="fas fa-hand-holding-usd text-cyan-400"></i>
-                    Platform Activity
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
-                      <span className="text-white/70">Total Contributions</span>
-                      <span className="text-white font-semibold">{stats.totalContributions.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
-                      <span className="text-white/70">Pending Withdrawals</span>
-                      <span className="text-white font-semibold">{withdrawals.filter(w => w.status === 'pending').length}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
-                      <span className="text-white/70">Avg Contribution</span>
-                      <span className="text-cyan-400 font-semibold">
-                        ₦{(stats.totalRaised / (stats.totalContributions || 1)).toFixed(0).toLocaleString()}
-                      </span>
-                    </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="p-6">
+                  <h3 className="text-xl font-bold text-foreground mb-6 flex items-center gap-3"><TrendingUp className="size-5 text-primary" /> Platform Activity</h3>
+                  <div className="space-y-3">
+                    {[
+                      { label: 'Total Contributions', value: stats.totalContributions.toLocaleString() },
+                      { label: 'Pending Withdrawals', value: withdrawals.filter(w => w.status === 'pending').length },
+                      { label: 'Avg Contribution', value: `₦${(stats.totalRaised / (stats.totalContributions || 1)).toFixed(0).toLocaleString()}`, accent: true },
+                    ].map((item) => (
+                      <div key={item.label} className="flex justify-between items-center p-3 bg-muted rounded-xl">
+                        <span className="text-muted-foreground text-sm">{item.label}</span>
+                        <span className={`font-semibold ${item.accent ? 'text-primary' : 'text-foreground'}`}>{item.value}</span>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                </Card>
 
-                  {/* </div>
-                </div> */}
-              </div>
-
-              {/* Recent Donations Table */}
-              <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
-                <div className="p-6 border-b border-white/10 flex justify-between items-center">
-                  <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                    <i className="fas fa-history text-cyan-400"></i>
-                    Recent Global Contributions
-                  </h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-white/5 border-b border-white/10">
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Supporter</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Collection</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Amount</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Status</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm text-right">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/10">
-                      {(allDonations || []).slice(0, 10).map((donation) => (
-                        <tr key={donation._id} className="hover:bg-white/5 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="text-white font-medium">{donation.supporterName || 'Anonymous'}</div>
-                            <div className="text-white/40 text-xs">{donation.supporterEmail}</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-white/70 text-sm truncate max-w-xs">{donation.collectionTitle || 'Unknown Project'}</div>
-                          </td>
-                          <td className="px-6 py-4 font-bold text-cyan-400">
-                            ₦{donation.amount.toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              donation.status === 'completed' ? 'bg-green-400/20 text-green-400' : 'bg-yellow-400/20 text-yellow-400'
-                            }`}>
-                              {donation.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right text-white/40 text-sm">
-                            {new Date(donation.createdAt).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))}
-                      {(!allDonations || allDonations.length === 0) && (
-                        <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-white/30 italic">
-                            No donation activity recorded yet.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <Card className="p-6">
+                  <h3 className="text-xl font-bold text-foreground mb-6 flex items-center gap-3"><History className="size-5 text-primary" /> Recent Global Contributions</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b border-border"><th className="pb-3 text-left text-muted-foreground font-medium">Supporter</th><th className="pb-3 text-left text-muted-foreground font-medium">Amount</th><th className="pb-3 text-right text-muted-foreground font-medium">Date</th></tr></thead>
+                      <tbody className="divide-y divide-border">
+                        {(allDonations || []).slice(0, 5).map((d) => (
+                          <tr key={d._id} className="hover:bg-muted/50">
+                            <td className="py-3"><div className="text-foreground font-medium">{d.supporterName || 'Anonymous'}</div><div className="text-muted-foreground text-xs">{d.collectionTitle}</div></td>
+                            <td className="py-3 text-primary font-semibold">₦{d.amount.toLocaleString()}</td>
+                            <td className="py-3 text-right text-muted-foreground text-xs">{new Date(d.createdAt).toLocaleDateString()}</td>
+                          </tr>
+                        ))}
+                        {(!allDonations || allDonations.length === 0) && (<tr><td colSpan={3} className="py-8 text-center text-muted-foreground">No donations yet.</td></tr>)}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
               </div>
             </div>
           )}
 
-          {/* Withdrawals Management Tab */}
           {selectedTab === 'withdrawals' && (
-            <div className="space-y-6 sm:space-y-8">
-              <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-white/5 border-b border-white/10">
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Creator</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Amount</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Bank Details</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Status</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Date</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm text-right">Actions</th>
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted"><tr>{['Creator', 'Amount', 'Bank Details', 'Status', 'Date', 'Actions'].map(h => (<th key={h} className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>))}</tr></thead>
+                  <tbody className="divide-y divide-border">
+                    {withdrawals.map((w) => (
+                      <tr key={w._id} className="hover:bg-muted/50 transition-colors">
+                        <td className="px-6 py-4"><div className="text-foreground font-medium">{w.creator?.name || 'Unknown'}</div><div className="text-muted-foreground text-xs">{w.creator?.email}</div></td>
+                        <td className="px-6 py-4 text-primary font-bold">₦{w.amount.toLocaleString()}</td>
+                        <td className="px-6 py-4"><div className="text-foreground text-sm">{w.bankDetails.bankName}</div><div className="text-muted-foreground text-xs">{w.bankDetails.accountNumber} • {w.bankDetails.accountName}</div></td>
+                        <td className="px-6 py-4"><Badge className={statusStyle(w.status)}>{w.status}</Badge></td>
+                        <td className="px-6 py-4 text-muted-foreground text-sm">{new Date(w.createdAt).toLocaleDateString()}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2 justify-end">
+                            {w.status === 'pending' && (
+                              <><Button variant="ghost" size="sm" onClick={() => handleApproveWithdrawal(w._id)} className="text-green-600"><Check className="size-4" /></Button><Button variant="ghost" size="sm" onClick={() => handleRejectWithdrawal(w._id)} className="text-red-600"><X className="size-4" /></Button></>
+                            )}
+                            {w.status === 'processing' && (
+                              <Button variant="outline" size="sm" onClick={() => handleCompleteWithdrawal(w._id)} disabled={isProcessing === w._id}>{isProcessing === w._id ? <Loader2 className="size-4 animate-spin" /> : null}Complete</Button>
+                            )}
+                            {w.status === 'pending' && (
+                              <Button variant="ghost" size="sm" onClick={() => handleCompleteWithdrawal(w._id)} disabled={isProcessing === w._id}>{isProcessing === w._id ? <Loader2 className="size-4 animate-spin" /> : null}Mark Paid</Button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/10">
-                      {withdrawals.map((withdrawal) => (
-                        <tr key={withdrawal._id} className="hover:bg-white/5 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="text-white font-medium">{withdrawal.creator?.name || 'Unknown'}</div>
-                            <div className="text-white/40 text-xs">{withdrawal.creator?.email}</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-cyan-400 font-bold">₦{withdrawal.amount.toLocaleString()}</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-white text-sm">{withdrawal.bankDetails.bankName}</div>
-                            <div className="text-white/40 text-xs">{withdrawal.bankDetails.accountNumber} • {withdrawal.bankDetails.accountName}</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              withdrawal.status === 'pending' ? 'bg-yellow-400/10 text-yellow-400' :
-                              withdrawal.status === 'processing' ? 'bg-blue-400/10 text-blue-400' :
-                              withdrawal.status === 'completed' ? 'bg-green-400/10 text-green-400' :
-                              'bg-red-400/10 text-red-400'
-                            }`}>
-                              {withdrawal.status.toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-white/40 text-sm">
-                            {new Date(withdrawal.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex justify-end gap-2">
-                              {withdrawal.status === 'pending' && (
-                                <>
-                                  <button 
-                                    onClick={() => handleApproveWithdrawal(withdrawal._id)}
-                                    className="p-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-all"
-                                    title="Approve & Transfer"
-                                  >
-                                    <i className="fas fa-check"></i>
-                                  </button>
-                                  <button 
-                                    onClick={() => handleRejectWithdrawal(withdrawal._id)}
-                                    className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
-                                    title="Reject"
-                                  >
-                                    <i className="fas fa-times"></i>
-                                  </button>
-                                </>
-                              )}
-                              {withdrawal.status === 'processing' && (
-                                <button 
-                                  onClick={() => handleCompleteWithdrawal(withdrawal._id)}
-                                  disabled={isProcessing === withdrawal._id}
-                                  className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-500/30 transition-all disabled:opacity-50"
-                                >
-                                  {isProcessing === withdrawal._id ? <i className="fas fa-spinner fa-spin"></i> : 'Complete Transfer'}
-                                </button>
-                              )}
-                              {withdrawal.status === 'pending' && (
-                                <button 
-                                  onClick={() => handleCompleteWithdrawal(withdrawal._id)}
-                                  disabled={isProcessing === withdrawal._id}
-                                  className="px-3 py-1 bg-white/10 text-white/70 rounded-lg text-xs font-bold hover:bg-white/20 transition-all disabled:opacity-50"
-                                  title="Skip automated payout and mark as paid"
-                                >
-                                  {isProcessing === withdrawal._id ? <i className="fas fa-spinner fa-spin"></i> : 'Mark Paid Manually'}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+            </Card>
           )}
 
-          {/* Users Tab */}
           {selectedTab === 'users' && (
-            <div className="space-y-6 sm:space-y-8">
-              <div className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 overflow-hidden shadow-xl">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-white/5 border-b border-white/10">
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">User</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Role</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Verified</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm">Joined</th>
-                        <th className="px-6 py-4 text-white/60 font-semibold text-sm text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/10">
-                      {users.map((u) => (
-                        <tr key={u._id} className="hover:bg-white/5 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="text-white font-medium">{u.name}</div>
-                            <div className="text-white/40 text-xs">{u.email}</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-white/70 text-sm capitalize">{u.role}</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            {u.isEmailVerified ? 
-                              <i className="fas fa-check-circle text-green-400"></i> : 
-                              <i className="fas fa-times-circle text-red-400"></i>
-                            }
-                          </td>
-                          <td className="px-6 py-4 text-right flex justify-end gap-2">
-                            <select 
-                              value={u.role}
-                              onChange={(e) => handleUpdateUserRole(u._id, e.target.value)}
-                              disabled={isProcessing === u._id || u._id === user?._id}
-                              className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-400 disabled:opacity-50"
-                            >
-                              <option value="user" className="bg-gray-800">User</option>
-                              <option value="admin" className="bg-gray-800">Admin</option>
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted"><tr>{['User', 'Role', 'Verified', 'Actions'].map(h => (<th key={h} className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>))}</tr></thead>
+                  <tbody className="divide-y divide-border">
+                    {users.map((u) => (
+                      <tr key={u._id} className="hover:bg-muted/50 transition-colors">
+                        <td className="px-6 py-4"><div className="text-foreground font-medium">{u.name}</div><div className="text-muted-foreground text-xs">{u.email}</div></td>
+                        <td className="px-6 py-4 text-sm capitalize">{u.role}</td>
+                        <td className="px-6 py-4">{u.emailVerified ? <CheckCircle className="size-5 text-green-500" /> : <XCircle className="size-5 text-red-500" />}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2">
+                            <select value={u.role} onChange={(e) => handleUpdateUserRole(u._id, e.target.value)} disabled={isProcessing === u._id || u._id === user?._id}
+                              className="h-9 rounded-lg border border-input bg-background px-3 text-xs focus:outline-none focus:ring-2 focus:ring-ring">
+                              <option value="user">User</option><option value="admin">Admin</option>
                             </select>
-                            <button 
-                              onClick={() => handleDeleteUser(u._id)}
-                              disabled={isProcessing === u._id || u._id === user?._id}
-                              className="p-1.5 text-red-400/50 hover:text-red-400 transition-colors disabled:opacity-50"
-                              title="Delete User"
-                            >
-                              {isProcessing === u._id ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-trash-alt"></i>}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                            <Button variant="ghost" size="sm" onClick={() => setDeleteUserConfirm(u._id)} disabled={isProcessing === u._id || u._id === user?._id} className="text-red-500">
+                              {isProcessing === u._id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+            </Card>
           )}
 
-          {/* Campaign Management Tabs */}
           {['pending', 'approved', 'rejected'].includes(selectedTab) && (
-            <div className="space-y-6 sm:space-y-8">
-              {/* Search and Filters */}
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    placeholder="Search collections..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder:text-white/50 backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20"
-                  />
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input type="text" placeholder="Search collections..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 h-12" />
                 </div>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="px-4 sm:px-6 py-3 sm:py-4 bg-white/10 border-2 border-white/20 rounded-xl text-white backdrop-blur-md transition-all duration-300 focus:outline-none focus:border-cyan-400 focus:shadow-lg focus:shadow-cyan-400/20"
-                >
-                  <option value="all" className="bg-gray-800 text-white">All Statuses</option>
-                  <option value="pending" className="bg-gray-800 text-white">Pending</option>
-                  <option value="approved" className="bg-gray-800 text-white">Approved</option>
-                  <option value="rejected" className="bg-gray-800 text-white">Rejected</option>
+                <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="h-12 px-4 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                  <option value="all">All Statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option>
                 </select>
               </div>
 
-              {/* Collections List */}
-              <div className="space-y-4 sm:space-y-6">
-                {filteredCollections
-                  .filter(collection => {
-                    if (selectedTab === 'overview') return true;
-                    if (selectedTab === 'approved') return collection.status === 'active';
-                    return collection.status === selectedTab;
-                  })
-                  .map((collection) => (
-                    <div key={collection._id} className="bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 p-4 sm:p-6 shadow-xl">
-                      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-                        {/* Campaign Image */}
-                        <div className="flex-shrink-0">
-                          <img 
-                            src={collection.primaryImage?.url || collection.images?.[0]?.url || 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'} 
-                            alt={collection.title} 
-                            className="w-full lg:w-48 h-32 lg:h-32 rounded-xl object-cover"
-                          />
+              <div className="space-y-4">
+                {filteredCollections.filter(c => selectedTab === 'overview' || c.status === (selectedTab === 'approved' ? 'active' : selectedTab)).map((collection) => (
+                  <Card key={collection._id} className="p-4 sm:p-6">
+                    <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+                      <img src={collection.primaryImage?.url || collection.images?.[0]?.url || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80'}
+                        alt={collection.title} className="w-full lg:w-48 h-32 rounded-xl object-cover" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                          <div className="flex-1">
+                            <h3 className="text-foreground font-bold text-lg mb-2">{collection.title}</h3>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              <Badge className={statusStyle(collection.status)}>{statusLabel(collection.status)}</Badge>
+                              <Badge variant="secondary">{collection.category}</Badge>
+                              <Badge variant="secondary" className="capitalize">{collection.type}</Badge>
+                            </div>
+                          </div>
+                          <div className="text-sm text-muted-foreground whitespace-nowrap">Submitted: {new Date(collection.createdAt).toLocaleDateString()}</div>
                         </div>
-
-                        {/* Campaign Details */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">
-                            <div className="flex-1">
-                              <h3 className="text-white font-bold text-lg sm:text-xl mb-2 line-clamp-2">
-                                {collection.title}
-                              </h3>
-                              <div className="flex flex-wrap gap-2 mb-3">
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(collection.status)}`}>
-                                  {getStatusText(collection.status)}
-                                </span>
-                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-white/70">
-                                  {collection.category}
-                                </span>
-                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-cyan-400/15 text-cyan-300 capitalize">
-                                  {collection.type}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="text-right text-sm text-white/60">
-                              Submitted: {new Date(collection.createdAt).toLocaleDateString()}
-                            </div>
-                          </div>
-
-                          <p className="text-white/70 text-sm sm:text-base mb-4 line-clamp-2">
-                            {collection.description}
-                          </p>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-sm mb-4">
-                            <div>
-                              <div className="text-white/60">Creator</div>
-                              <div className="text-white font-medium">{collection.creator?.name || 'Unknown'}</div>
-                            </div>
-                            <div>
-                              <div className="text-white/60">Email</div>
-                              <div className="text-white font-medium truncate">{collection.creator?.email || '-'}</div>
-                            </div>
-                            <div>
-                              <div className="text-white/60">Raised</div>
-                              <div className="text-white font-medium">₦{collection.raised?.toLocaleString() || 0}</div>
-                            </div>
-                            <div>
-                              <div className="text-white/60">Goal</div>
-                              <div className="text-white font-medium">₦{collection.goal?.toLocaleString()}</div>
-                            </div>
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex flex-wrap gap-2 sm:gap-3">
-                            {collection.status === 'pending' && (
-                              <>
-                                <button
-                                  onClick={() => handleApprove(collection._id)}
-                                  disabled={isProcessing === collection._id}
-                                  className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg font-medium border border-green-400/30 hover:bg-green-500/30 transition-colors cursor-pointer disabled:opacity-50"
-                                >
-                                  {isProcessing === collection._id ? <i className="fas fa-spinner fa-spin mr-2"></i> : <i className="fas fa-check mr-2"></i>}
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() => handleReject(collection._id, 'Insufficient documentation')}
-                                  disabled={isProcessing === collection._id}
-                                  className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg font-medium border border-red-400/30 hover:bg-red-500/30 transition-colors cursor-pointer disabled:opacity-50"
-                                >
-                                  <i className="fas fa-times mr-2"></i>
-                                  Reject
-                                </button>
-                              </>
-                            )}
-                            <button
-                              onClick={() => handleDeleteCollection(collection._id)}
-                              disabled={isProcessing === collection._id}
-                              className="px-4 py-2 bg-white/5 text-white/40 rounded-lg font-medium border border-white/10 hover:bg-red-500/20 hover:text-red-400 hover:border-red-400/30 transition-all cursor-pointer disabled:opacity-50"
-                            >
-                              <i className="fas fa-trash-alt mr-2"></i>
-                              Delete
-                            </button>
-                          </div>
+                        <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{collection.description}</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-sm">
+                          {[
+                            { label: 'Creator', value: collection.creator?.name || 'Unknown' },
+                            { label: 'Email', value: collection.creator?.email || '-' },
+                            { label: 'Raised', value: `₦${collection.raised?.toLocaleString() || 0}` },
+                            { label: 'Goal', value: `₦${collection.goal?.toLocaleString()}` },
+                          ].map((item) => (
+                            <div key={item.label}><div className="text-muted-foreground text-xs">{item.label}</div><div className="text-foreground font-medium truncate">{item.value}</div></div>
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {collection.status === 'pending' && (
+                            <>
+                              <Button size="sm" onClick={() => handleApprove(collection._id)} disabled={isProcessing === collection._id} className="bg-green-600 hover:bg-green-700">
+                                {isProcessing === collection._id ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Approve
+                              </Button>
+                              <Button size="sm" variant="destructive" onClick={() => handleReject(collection._id)} disabled={isProcessing === collection._id}>
+                                {isProcessing === collection._id ? <Loader2 className="size-4 animate-spin" /> : <X className="size-4" />} Reject
+                              </Button>
+                            </>
+                          )}
+                          <Button size="sm" variant="outline" onClick={() => setDeleteCollectionConfirm(collection._id)} disabled={isProcessing === collection._id} className="text-red-500">
+                            <Trash2 className="size-4" /> Delete
+                          </Button>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  </Card>
+                ))}
               </div>
 
-              {/* Empty State */}
-              {filteredCollections.filter(c => selectedTab === 'overview' || c.status === selectedTab).length === 0 && (
-                <div className="text-center py-12 sm:py-16">
-                  <i className="fas fa-inbox text-6xl text-white/30 mb-6"></i>
-                  <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4">No collections found</h3>
-                  <p className="text-white/70 text-base sm:text-lg">
+              {filteredCollections.filter(c => selectedTab === 'overview' || c.status === (selectedTab === 'approved' ? 'active' : selectedTab)).length === 0 && (
+                <div className="text-center py-16">
+                  <Inbox className="size-12 text-muted-foreground/30 mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold text-foreground mb-2">No collections found</h3>
+                  <p className="text-muted-foreground">
                     {selectedTab === 'pending' && 'No collections are currently pending review.'}
                     {selectedTab === 'approved' && 'No collections have been approved yet.'}
                     {selectedTab === 'rejected' && 'No collections have been rejected.'}
@@ -837,6 +394,12 @@ export default function AdminDashboardPage() {
           )}
         </div>
       </div>
+      <ConfirmModal open={deleteCollectionConfirm !== null} title="Delete Collection" message="Are you sure you want to delete this collection? This action is permanent."
+        confirmLabel="Delete" onConfirm={() => { if (deleteCollectionConfirm) handleDeleteCollection(deleteCollectionConfirm); setDeleteCollectionConfirm(null); }}
+        onCancel={() => setDeleteCollectionConfirm(null)} />
+      <ConfirmModal open={deleteUserConfirm !== null} title="Delete User" message="Are you sure? This will permanently delete the user."
+        confirmLabel="Delete" onConfirm={() => { if (deleteUserConfirm) handleDeleteUser(deleteUserConfirm); setDeleteUserConfirm(null); }}
+        onCancel={() => setDeleteUserConfirm(null)} />
     </>
   );
 }

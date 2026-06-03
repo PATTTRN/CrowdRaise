@@ -38,9 +38,9 @@ const TYPE_META = {
 
 type CollectionType = keyof typeof TYPE_META;
 
-interface Collection {
+interface ExploreCollection {
   _id: string;
-  type: CollectionType;
+  type: string;
   title: string;
   category: string;
   creator: { name: string };
@@ -52,7 +52,7 @@ interface Collection {
   primaryImage?: { url: string };
   images: { url: string }[];
   description: string;
-  status: 'active' | 'completed';
+  status: string;
   eventDate?: string;
   featured?: boolean;
 }
@@ -82,7 +82,7 @@ interface FetchCollectionsParams {
 }
 
 export default function ExplorePage() {
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [collections, setCollections] = useState<ExploreCollection[]>([]);
   const [typeFilter, setTypeFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('All Categories');
   const [searchTerm, setSearchTerm] = useState('');
@@ -275,7 +275,7 @@ export default function ExplorePage() {
             {collections.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {collections.map((c) => {
-                  const meta = TYPE_META[c.type];
+                  const meta = TYPE_META[c.type as keyof typeof TYPE_META];
                   const pct = c.goal ? Math.min(Math.round((c.raised / c.goal) * 100), 100) : 0;
                   const imageUrl = c.primaryImage?.url || c.images?.[0]?.url || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80';
                   

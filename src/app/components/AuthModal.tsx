@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { authService } from '@/services';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/axios';
+import type { RegisterPayload, LoginPayload } from '@/lib/api-types';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { X, Loader2, Mail, Lock, User } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -12,13 +16,8 @@ interface AuthModalProps {
   initialMode?: 'login' | 'register';
 }
 
-// For proper error typing - for axios errors
 interface AxiosErrorResponse {
-  response?: {
-    data?: {
-      message?: string;
-    };
-  };
+  response?: { data?: { message?: string } };
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'login' }) => {
@@ -26,35 +25,42 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
   const [isLoading, setIsLoading] = useState(false);
   const [otp, setOtp] = useState('');
   const setAuth = useAuthStore((state) => state.setAuth);
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const firstInputRef = useRef<HTMLInputElement>(null);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-  });
+  useEffect(() => {
+    if (isOpen) {
+      firstInputRef.current?.focus();
+    }
+  }, [isOpen, mode]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === 'register' && formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
     setIsLoading(true);
-
     try {
       if (mode === 'login') {
-        const res = await authService.login({
-          email: formData.email,
-          password: formData.password,
-        });
-        setAuth(res.user, res.token);
-        toast.success(`Welcome back, ${res.user.name}!`);
+        const res = await authService.login({ email: formData.email, password: formData.password });
+        setAuth(res.data.user, res.data.token);
+        toast.success(`Welcome back, ${res.data.user.name}!`);
         onClose();
       } else if (mode === 'register') {
-        const res = await authService.register({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        });
-        setAuth(res.user, res.token); // Login immediately to enable verify-otp call
+        const res = await authService.register({ name: formData.name, email: formData.email, password: formData.password });
+        setAuth(res.data.user, res.data.token);
         toast.success('Account created! A verification code has been sent to your email.');
         setMode('verify');
       } else if (mode === 'verify') {
@@ -84,23 +90,30 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div 
-        className="relative w-full max-w-md bg-neutral-900 border border-white/10 rounded-2xl p-8 shadow-2xl animate-in zoom-in-95 duration-300"
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md bg-white rounded-2xl p-8 shadow-xl mx-4"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === 'login' ? 'Login' : mode === 'register' ? 'Create account' : 'Verify email'}
       >
-        <button 
+        <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors cursor-pointer"
+          aria-label="Close modal"
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
         >
-          <i className="fas fa-times text-xl"></i>
+          <X className="size-5" />
         </button>
 
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {mode === 'login' ? 'Welcome Back' : 'Join Crowdraise'}
+          <h2 className="text-3xl font-bold text-foreground mb-2">
+            {mode === 'login' ? 'Welcome Back' : 'Join CrowdRaise'}
           </h2>
-          <p className="text-white/60">
+          <p className="text-muted-foreground">
             {mode === 'login' ? 'Login to manage your collections' : 'Create an account to start raising funds'}
           </p>
         </div>
@@ -108,36 +121,43 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'register' && (
             <div className="space-y-1">
-              <label className="text-sm text-white/70 ml-1">Full Name</label>
-              <input
-                type="text"
-                required
-                placeholder="John Doe"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 transition-all"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+              <label htmlFor="auth-name" className="text-sm text-muted-foreground ml-1">Full Name</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  ref={firstInputRef}
+                  id="auth-name"
+                  type="text"
+                  required
+                  placeholder="John Doe"
+                  className="pl-10"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
             </div>
           )}
 
           {mode === 'verify' && (
             <div className="space-y-1">
-              <label className="text-sm text-white/70 ml-1">Verification Code</label>
-              <input
+              <label htmlFor="auth-otp" className="text-sm text-muted-foreground ml-1">Verification Code</label>
+              <Input
+                ref={firstInputRef}
+                id="auth-otp"
                 type="text"
                 required
                 maxLength={6}
                 placeholder="123456"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-pink-500/50 transition-all"
+                className="text-center text-2xl tracking-[0.5em]"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
               />
               <div className="text-right mt-2">
-                <button 
+                <button
                   type="button"
                   onClick={handleResendOtp}
                   disabled={isLoading}
-                  className="text-xs text-pink-400 hover:underline disabled:opacity-50"
+                  className="text-xs text-primary hover:underline disabled:opacity-50"
                 >
                   Resend Code
                 </button>
@@ -148,50 +168,68 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
           {mode !== 'verify' && (
             <>
               <div className="space-y-1">
-                <label className="text-sm text-white/70 ml-1">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="name@example.com"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 transition-all"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                />
+                <label htmlFor="auth-email" className="text-sm text-muted-foreground ml-1">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    ref={mode === 'login' ? firstInputRef : undefined}
+                    id="auth-email"
+                    type="email"
+                    required
+                    placeholder="name@example.com"
+                    className="pl-10"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm text-white/70 ml-1">Password</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 transition-all"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                />
+                <label htmlFor="auth-password" className="text-sm text-muted-foreground ml-1">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    id="auth-password"
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder={mode === 'register' ? 'At least 6 characters' : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
+                    className="pl-10"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
+                </div>
               </div>
+
+              {mode === 'login' && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => toast.info('Please contact support to reset your password.')}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
             </>
           )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-pink-500/20 hover:scale-[1.02] cursor-pointer disabled:opacity-70"
-          >
+          <Button type="submit" disabled={isLoading} className="w-full h-12">
             {isLoading ? (
-              <i className="fas fa-circle-notch fa-spin"></i>
+              <Loader2 className="size-4 animate-spin" />
             ) : (
               mode === 'login' ? 'Login' : mode === 'register' ? 'Create Account' : 'Verify Email'
             )}
-          </button>
+          </Button>
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-white/60">
+          <p className="text-muted-foreground text-sm">
             {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
             <button
               onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-              className="text-pink-400 font-medium hover:underline cursor-pointer"
+              className="text-primary font-medium hover:underline"
             >
               {mode === 'login' ? 'Sign Up' : 'Login'}
             </button>

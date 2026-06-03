@@ -1,18 +1,23 @@
 import { getUploadAuthParams } from "@imagekit/next/server"
+import { headers } from "next/headers"
 
 export async function GET() {
-    // Your application logic to authenticate the user
-    // For example, you can check if the user is logged in or has the necessary permissions
+  const headersList = await headers()
+  const authHeader = headersList.get("authorization")
 
-    const { token, expire, signature } = getUploadAuthParams({
-        privateKey: process.env.IMAGEKIT_PRIVATE_KEY as string, 
-        publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY as string,
-    })
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
+  }
 
-    return Response.json({ 
-      token, 
-      expire, 
-      signature, 
-      publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY 
-    })
+  const { token, expire, signature } = getUploadAuthParams({
+    privateKey: process.env.IMAGEKIT_PRIVATE_KEY as string,
+    publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY as string,
+  })
+
+  return Response.json({
+    token,
+    expire,
+    signature,
+    publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY,
+  })
 }

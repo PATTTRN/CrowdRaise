@@ -1,130 +1,152 @@
-"use client";
-import Link from "next/link";
-import React, { useState, useEffect } from "react";
-import { useAuthStore } from "@/store/authStore";
-import AuthModal from "./AuthModal";
+'use client';
 
-const NAV_ITEMS = [
-  { href: "/explore", label: "Explore" },
-  { href: "/create_collection", label: "Create" },
-  { href: "/dashboard", label: "Dashboard" },
-];
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useAuthStore } from '@/store/authStore';
+import { Button } from '@/components/ui/button';
+import { Menu, X, Plus, Search, LayoutDashboard, Heart } from 'lucide-react';
 
-const Header: React.FC = () => {
+export default function Header() {
+  const { user, isAuthenticated, logout } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const handleOpenModal = () => setIsAuthModalOpen(true);
-    window.addEventListener('open-auth-modal', handleOpenModal);
-    return () => window.removeEventListener('open-auth-modal', handleOpenModal);
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen((open) => !open);
-  };
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isMobileMenuOpen]);
+
+  const navLinks = [
+    { href: '/explore', label: 'Explore', icon: Search },
+    { href: '/create_collection', label: 'Create', icon: Plus },
+    ...(isAuthenticated ? [{ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }] : []),
+  ];
 
   return (
     <>
-      <nav className="fixed top-0 w-full z-50 bg-neutral-950/80 backdrop-blur-lg border-b border-white/10">
+      <header
+        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+          scrolled
+            ? 'bg-white/80 backdrop-blur-lg border-b border-border shadow-sm'
+            : 'bg-transparent'
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center justify-center h-full">
-              <img src="./raise_logo.png" alt="" height={100} width={100} />
+          <div className="flex items-center justify-between h-[var(--header-height)]">
+            {/* Logo */}
+            <Link
+              href="/"
+              className="text-xl font-bold bg-gradient-to-r from-rose-500 via-rose-500 to-cyan-500 bg-clip-text text-transparent"
+            >
+              CrowdRaise
             </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-6">
-              {NAV_ITEMS.map((item) => (
+            {/* Desktop Nav */}
+            <nav className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => (
                 <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-white/80 hover:text-white font-medium transition-colors"
+                  key={link.href}
+                  href={link.href}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-accent transition-colors"
                 >
-                  {item.label}
+                  <link.icon className="size-4" />
+                  {link.label}
                 </Link>
               ))}
-              
-              <div className="h-6 w-px bg-white/10 mx-2" />
+            </nav>
 
+            {/* Auth Section */}
+            <div className="hidden md:flex items-center gap-3">
               {isAuthenticated ? (
-                <div className="flex items-center space-x-4">
-                  <span className="text-white/60 text-sm">Hi, {user?.name.split(' ')[0]}</span>
+                <div className="flex items-center gap-3">
+                  <Link href="/profile" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
+                      {user?.name?.charAt(0) || 'U'}
+                    </div>
+                    <span className="hidden lg:inline">{user?.name}</span>
+                  </Link>
+                  <Button variant="outline" size="sm" onClick={logout}>
+                    Logout
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-auth-modal'))}
+                >
+                  Sign In
+                </Button>
+              )}
+            </div>
+
+            {/* Mobile hamburger */}
+            <button
+              className="md:hidden p-2 text-muted-foreground hover:text-foreground"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="absolute top-16 left-0 right-0 bg-white border-b border-border shadow-lg p-4">
+            <nav className="flex flex-col gap-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-accent transition-colors"
+                >
+                  <link.icon className="size-4" />
+                  {link.label}
+                </Link>
+              ))}
+              <hr className="my-2 border-border" />
+              {isAuthenticated ? (
+                <>
+                  <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
+                      {user?.name?.charAt(0) || 'U'}
+                    </div>
+                    {user?.name}
+                  </div>
                   <button
-                    onClick={() => logout()}
-                    className="text-white/90 font-medium px-5 py-2 rounded-full border border-white/20 hover:bg-white/10 transition-all cursor-pointer"
+                    onClick={() => { logout(); setIsMobileMenuOpen(false); }}
+                    className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-destructive rounded-lg hover:bg-destructive/10 transition-colors"
                   >
                     Logout
                   </button>
-                </div>
+                </>
               ) : (
                 <button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="bg-white text-black font-bold px-6 py-2 rounded-full hover:bg-white/90 transition-all cursor-pointer"
+                  onClick={() => { setIsMobileMenuOpen(false); window.dispatchEvent(new CustomEvent('open-auth-modal')); }}
+                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-primary rounded-lg hover:bg-primary/10 transition-colors"
                 >
-                  Login
+                  <Heart className="size-4" />
+                  Sign In
                 </button>
               )}
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden text-white p-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-              onClick={toggleMobileMenu}
-              aria-label="Toggle mobile menu"
-            >
-              <i className={`fas ${isMobileMenuOpen ? "fa-times" : "fa-bars"} text-xl`}></i>
-            </button>
-          </div>
-
-          {/* Mobile Menu */}
-          <div
-            className={`md:hidden ${isMobileMenuOpen ? "block" : "hidden"} border-t border-white/10 py-4`}
-          >
-            <div className="flex flex-col space-y-4 px-2">
-              {NAV_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-white/80 hover:text-white font-medium"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              {isAuthenticated ? (
-                <button
-                  onClick={() => {
-                    logout();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="text-rose-400 font-medium text-left cursor-pointer"
-                >
-                  Logout
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    setIsAuthModalOpen(true);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="text-pink-400 font-medium text-left cursor-pointer"
-                >
-                  Login / Sign Up
-                </button>
-              )}
-            </div>
+            </nav>
           </div>
         </div>
-      </nav>
-
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
-      />
+      )}
     </>
   );
-};
-
-export default Header;
+}
