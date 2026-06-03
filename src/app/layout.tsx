@@ -7,6 +7,7 @@ import { AuthModalProvider } from "@/components/AuthModalProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { AnimatePresenceWrapper } from "@/components/AnimatePresenceWrapper";
 import { ErrorBoundaryWrapper } from "@/components/ErrorBoundaryWrapper";
+import { AgentationWrapper } from "@/components/AgentationWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,7 @@ export default function RootLayout({
         <Footer />
         <Toaster position="top-right" richColors />
         <AuthModalProvider />
+        <AgentationWrapper />
       </body>
     </html>
   );

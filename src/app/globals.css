@@ -1,26 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8f9fc;
-  --foreground: #1a1a2e;
+  --background: #ffffff;
+  --foreground: #0a2540;
   --card: #ffffff;
-  --card-foreground: #1a1a2e;
+  --card-foreground: #0a2540;
   --popover: #ffffff;
-  --popover-foreground: #1a1a2e;
-  --primary: #f43f5e;
+  --popover-foreground: #0a2540;
+  --primary: #635bff;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #1a1a2e;
-  --muted: #e2e8f0;
-  --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #1a1a2e;
+  --secondary: #f6f9fc;
+  --secondary-foreground: #0a2540;
+  --muted: #f6f9fc;
+  --muted-foreground: #6b7c93;
+  --accent: #f6f9fc;
+  --accent-foreground: #0a2540;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #f43f5e;
-  --radius: 0.75rem;
+  --border: #e6ebf1;
+  --input: #e6ebf1;
+  --ring: #635bff;
+  --radius: 0.5rem;
   --header-height: 4rem;
 }
 
@@ -54,17 +54,12 @@ body {
   background: var(--background);
   color: var(--foreground);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Particle animation */
-.bg-particles {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
+::selection {
+  background: #635bff;
+  color: white;
 }
 
 .particle {
@@ -74,7 +69,7 @@ body {
   background: var(--primary);
   border-radius: 50%;
   animation: float 6s ease-in-out infinite;
-  opacity: 0.08;
+  opacity: 0.06;
 }
 
 @keyframes float {
@@ -82,29 +77,29 @@ body {
   50% { transform: translateY(-20px) rotate(180deg); }
 }
 
-/* Shimmer - horizontal sweep */
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+
 .animate-shimmer {
   animation: shimmer 8s infinite;
 }
 
-/* Slide in */
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
 .animate-slideIn {
   animation: slideIn 0.5s ease;
 }
 
-/* Progress shimmer */
 @keyframes progressShimmer {
   0% { left: -100%; }
   100% { left: 100%; }
 }
+
 .animate-progressShimmer {
   animation: progressShimmer 2s infinite;
 }
@@ -113,31 +108,28 @@ body {
   transition-duration: 2000ms;
 }
 
-/* Mockup card wiggle for home page */
-@keyframes idWiggle {
-  0%   { transform: rotate(-3deg); }
-  50%  { transform: rotate(3deg); }
-  100% { transform: rotate(-3deg); }
-}
-
 .mockup-card {
-  animation: idWiggle 2s ease-in-out infinite;
-  transform-origin: bottom center;
+  animation: subtleFloat 6s ease-in-out infinite;
 }
 
-/* Mobile-only/Desktop-only */
+@keyframes subtleFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
 .mobile-only {
   display: block;
 }
+
 .desktop-only {
   display: none;
 }
+
 @media (min-width: 768px) {
   .mobile-only { display: none; }
   .desktop-only { display: block; }
 }
 
-/* Cursor pointer for all interactive elements */
 button:not(:disabled),
 select,
 label,
@@ -149,7 +141,6 @@ summary {
   cursor: pointer;
 }
 
-/* Focus-visible ring for custom interactive elements only */
 [role="button"]:focus-visible,
 [role="tab"]:focus-visible,
 [role="menuitem"]:focus-visible {
@@ -157,7 +148,6 @@ summary {
   outline-offset: 2px;
 }
 
-/* Touch-friendly */
 @media (max-width: 767px) {
   button:not(:disabled),
   a,

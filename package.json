@@ -43,6 +43,7 @@
     "@types/paystack__inline-js": "^1.0.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "agentation": "^3.0.2",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
     "jest": "^30.4.2",

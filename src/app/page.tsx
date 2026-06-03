@@ -1,364 +1,165 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import Link from "next/link";
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { TYPE_CONFIG, type CollectionType } from '@/lib/type-config';
-import {
-  Heart,
-  Rocket,
-  Smartphone,
-  ArrowRight,
-  Users,
-  Shield,
-  Globe,
-  Send,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Sparkles, Shield, Zap, Globe } from "lucide-react";
 
-const HERO_STATS = [
-  { value: 2.4, suffix: "M+", label: "Collected", prefix: "₦" },
-  { value: 1200, suffix: "+", label: "Collections" },
-  { value: 98, suffix: "%", label: "Happy Users" },
-];
-
-const COLLECTION_TYPES: {
-  id: CollectionType;
-  tagline: string;
-  description: string;
-  examples: string[];
-  cta: string;
-}[] = [
+const COLLECTION_TYPES = [
   {
-    id: "fundraiser",
-    tagline: "Rally support for your cause",
-    description:
-      "Medical bills, education, emergencies, community projects — bring your cause to life.",
-    examples: [
-      "Medical surgery fund",
-      "Student scholarship",
-      "Flood relief",
-      "Community borehole",
-    ],
+    id: "fundraiser" as const,
+    label: "Fundraiser",
+    tagline: "Rally support for a cause",
+    description: "Medical bills, education, emergencies, community projects — bring your cause to life.",
     cta: "Start a fundraiser",
+    gradient: "from-indigo-500 to-blue-500",
+    accent: "#635bff",
+    bgAccent: "rgba(99,91,255,0.08)",
+    emoji: "🌟",
+    examples: ["Medical surgery fund", "Student scholarship", "Flood relief", "Community project"],
   },
   {
-    id: "occasion",
+    id: "occasion" as const,
+    label: "Occasion Gift",
     tagline: "Make celebrations unforgettable",
-    description:
-      "Wedding, birthday, baby shower — create a beautiful gift collection page so your guests can chip in with love.",
-    examples: [
-      "Traditional wedding",
-      "30th birthday bash",
-      "Baby arrival gift",
-      "Anniversary celebration",
-    ],
+    description: "Weddings, birthdays, baby showers — create a beautiful gift collection page.",
     cta: "Create a gift page",
+    gradient: "from-purple-500 to-pink-500",
+    accent: "#a855f7",
+    bgAccent: "rgba(168,85,247,0.08)",
+    emoji: "🎉",
+    examples: ["Traditional wedding", "Birthday celebration", "Baby arrival", "Anniversary"],
   },
   {
-    id: "tips",
-    tagline: "Let fans support your hustle",
-    description:
-      "Content creator, freelancer, performer — accept appreciation in the most direct way.",
-    examples: [
-      "YouTube creator",
-      "DJ / performer",
-      "Freelance designer",
-      "Street food vendor",
-    ],
+    id: "tips" as const,
+    label: "Tips",
+    tagline: "Let fans support your work",
+    description: "Content creators, freelancers, performers — accept appreciation directly.",
     cta: "Set up a tip page",
-  },
-];
-
-const MOCKUP_CARDS = [
-  {
-    type: "fundraiser" as CollectionType,
-    title: "Help Sarah's Medical School",
-    sub: "Medical & Healthcare · Lagos",
-    raised: "₦485,000 raised",
-    goal: "of ₦650,000 goal · 28 days left",
-    pct: 74,
-    supporters: "142 donors",
-    image:
-      "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=700&q=80",
-  },
-  {
-    type: "occasion" as CollectionType,
-    title: "Tobi & Chisom's Wedding",
-    sub: "Wedding · Lagos",
-    raised: "₦320,000 gifted",
-    goal: "of ₦500,000 goal · March 15",
-    pct: 64,
-    supporters: "67 gift givers",
-    image:
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=700&q=80",
-  },
-  {
-    type: "tips" as CollectionType,
-    title: "Support DJ Kemi",
-    sub: "Music & Entertainment · Abuja",
-    raised: "₦95,000 received",
-    goal: "of ₦200,000 target · ongoing",
-    pct: 47,
-    supporters: "89 supporters",
-    image:
-      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=700&q=80",
+    gradient: "from-cyan-500 to-teal-500",
+    accent: "#06b6d4",
+    bgAccent: "rgba(6,182,212,0.08)",
+    emoji: "💸",
+    examples: ["YouTube creator", "DJ / performer", "Freelance designer", "Street food vendor"],
   },
 ];
 
 const FEATURES = [
-  {
-    icon: Heart,
-    title: "Zero Donor Fees",
-    desc: "Donors pay exactly what they intend. No hidden charges, ever.",
-  },
-  {
-    icon: Rocket,
-    title: "Lightning Fast Setup",
-    desc: "Create and launch your collection in under 3 minutes.",
-  },
-  {
-    icon: Smartphone,
-    title: "Mobile-First Design",
-    desc: "Beautiful, intuitive interface that works perfectly on every device.",
-  },
+  { icon: Shield, title: "No donor fees", desc: "Supporters pay exactly what they intend. Zero hidden charges." },
+  { icon: Zap, title: "Go live in minutes", desc: "Set up a beautiful collection page in under 3 minutes, no design skills needed." },
+  { icon: Globe, title: "Built for Africa", desc: "Paystack integration, NGN support, and mobile-first design for Nigerian users." },
 ];
 
-function createParticles(container: HTMLElement) {
-  for (let i = 0; i < 50; i++) {
-    const p = document.createElement("div");
-    p.className = "particle";
-    p.style.left = Math.random() * 100 + "%";
-    p.style.top = Math.random() * 100 + "%";
-    p.style.animationDelay = Math.random() * 6 + "s";
-    p.style.animationDuration = Math.random() * 4 + 4 + "s";
-    container.appendChild(p);
-  }
-}
-
-function animateCounter(
-  element: HTMLElement,
-  target: number,
-  suffix: string,
-  prefix = "",
-  duration = 5000
-) {
-  const increment = target / (duration / 16);
-  let current = 0;
-  const timer = setInterval(() => {
-    current += increment;
-    if (current >= target) {
-      current = target;
-      clearInterval(timer);
-    }
-    if (prefix === "₦" && suffix === "M+")
-      element.textContent = prefix + current.toFixed(1) + suffix;
-    else if (suffix === "%")
-      element.textContent = current.toFixed(0) + suffix;
-    else element.textContent = prefix + current.toFixed(0) + suffix;
-  }, 16);
-}
-
-const HomePage: React.FC = () => {
-  const particlesRef = useRef<HTMLDivElement>(null);
-  const heroStatsRef = useRef<HTMLDivElement>(null);
+export default function HomePage() {
   const [activeCard, setActiveCard] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(
-      () => setActiveCard((p) => (p + 1) % MOCKUP_CARDS.length),
-      3600
-    );
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (
-      particlesRef.current &&
-      particlesRef.current.childElementCount === 0
-    ) {
-      createParticles(particlesRef.current);
-    }
-
-    let observer: IntersectionObserver | null = null;
-    const currentHeroStats = heroStatsRef.current;
-    if (typeof window !== "undefined" && currentHeroStats) {
-      observer = new window.IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              const statNumbers =
-                entry.target.querySelectorAll(".stat-number");
-              statNumbers.forEach((stat, i) => {
-                const { value, suffix, prefix } = HERO_STATS[i];
-                setTimeout(
-                  () =>
-                    animateCounter(
-                      stat as HTMLElement,
-                      value,
-                      suffix,
-                      prefix || "",
-                      5000
-                    ),
-                  i * 200
-                );
-              });
-              observer?.unobserve(entry.target);
-            }
-          });
-        },
-        { threshold: 0.5, rootMargin: "0px 0px -100px 0px" }
-      );
-      observer.observe(currentHeroStats);
-    }
-
-    return () => {
-      if (observer && currentHeroStats) observer.unobserve(currentHeroStats);
-    };
-  }, []);
-
-  const card = MOCKUP_CARDS[activeCard];
-  const meta = TYPE_CONFIG[card.type];
+  const card = COLLECTION_TYPES[activeCard];
 
   return (
     <div>
-      <div className="bg-particles" ref={particlesRef}></div>
+      <div className="bg-particles" />
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-rose-50 via-white to-cyan-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            {/* Left */}
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-rose-100 text-rose-600 rounded-full text-sm font-medium mb-6">
-                <Sparkles className="size-4" />
-                Fundraise · Gifts · Tips — all in one place
+      <section className="relative overflow-hidden bg-gradient-to-br from-white via-indigo-50/30 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-center gap-16 pt-24 pb-20 sm:pt-32 sm:pb-28">
+            <div className="flex-1 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/5 text-primary rounded-full text-xs font-medium mb-6 tracking-wide uppercase">
+                <Sparkles className="size-3" /> Fundraising · Gifts · Tips
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight mb-6">
-                Money Collection Made{" "}
-                <span className="bg-gradient-to-r from-rose-500 via-rose-500 to-cyan-500 bg-clip-text text-transparent">
-                  Beautifully Simple
-                </span>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#0a2540] leading-[1.1] mb-6">
+                Money collection made{" "}
+                <span className="text-primary">beautifully simple</span>
               </h1>
 
-              <p className="text-lg text-muted-foreground mb-8 max-w-lg">
-                Whether you&apos;re raising funds for a cause, collecting gifts
-                for a special moment, or letting your fans show love —
-                CrowdRaise makes it effortless, transparent, and completely free
-                of hidden fees.
+              <p className="text-lg text-[#6b7c93] max-w-lg mx-auto lg:mx-0 mb-8 leading-relaxed">
+                Whether you&apos;re raising funds for a cause, collecting gifts for a celebration, or accepting tips — CrowdRaise makes it effortless and transparent.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 mb-10">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-12">
                 <Link href="/create_collection">
-                  <Button size="lg" className="w-full sm:w-auto">
-                    Start a Collection <ArrowRight className="size-4" />
+                  <Button size="lg" className="w-full sm:w-auto shadow-sm hover:shadow-md">
+                    Get started <ArrowRight className="size-4" />
                   </Button>
                 </Link>
                 <Link href="/explore">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                    Explore Collections
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto border-[#e6ebf1] text-[#0a2540] hover:bg-[#f6f9fc]">
+                    Browse collections
                   </Button>
                 </Link>
               </div>
 
-              <div className="flex gap-8 sm:gap-12" ref={heroStatsRef}>
-                {HERO_STATS.map((stat) => (
-                  <div key={stat.label}>
-                    <div className="text-2xl sm:text-3xl font-bold text-foreground stat-number">
-                      {stat.prefix}
-                      {stat.suffix === '%' ? '0%' : `0${stat.suffix}`}
-                    </div>
-                    <div className="text-sm text-muted-foreground">{stat.label}</div>
+              <div className="flex gap-8 sm:gap-12 justify-center lg:justify-start">
+                {[
+                  { value: "₦2.4M+", label: "Collected" },
+                  { value: "1,200+", label: "Collections" },
+                  { value: "98%", label: "Happy users" },
+                ].map((s) => (
+                  <div key={s.label}>
+                    <div className="text-xl sm:text-2xl font-bold text-[#0a2540]">{s.value}</div>
+                    <div className="text-sm text-[#6b7c93]">{s.label}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Right - Mockup Card */}
-              <div className="hidden lg:flex justify-center">
-              <div
-                className="mockup-card w-full max-w-md rounded-2xl overflow-hidden shadow-xl border border-gray-100"
-                style={{
-                  backgroundImage: `linear-gradient(0deg, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.15) 100%), url('${card.image}')`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  minHeight: 420,
-                }}
-              >
-                {/* Dot nav */}
-                <div className="flex gap-1.5 justify-center pt-4">
-                  {MOCKUP_CARDS.map((c, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setActiveCard(i)}
-                      className="h-1.5 rounded-full transition-all duration-300"
-                      style={{
-                        width: i === activeCard ? 20 : 5,
-                        background:
-                          i === activeCard
-                            ? meta.accentColor
-                            : "rgba(255,255,255,0.3)",
-                      }}
-                      aria-label={`Switch to ${c.type} card`}
-                    />
-                  ))}
-                </div>
-
-                {/* Type pill */}
-                <div className="text-center mt-4">
-                  <Badge
-                    style={{
-                      background: meta.bgAccent,
-                      color: meta.accentColor,
-                      border: `1px solid ${meta.borderAccent}`,
-                    }}
-                  >
-                    {meta.emoji} {meta.label}
-                  </Badge>
-                </div>
-
-                {/* Content */}
-                <div className="p-6 mt-auto">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div
-                      className="w-10 h-10 rounded-full"
-                      style={{ background: meta.accentGradient }}
-                    />
-                    <div>
-                      <h3 className="text-white font-bold text-sm">
-                        {card.title}
-                      </h3>
-                      <p className="text-white/60 text-xs">{card.sub}</p>
+            {/* Right - Card Preview */}
+            <div className="flex-1 w-full max-w-md lg:max-w-none">
+              <div className="mockup-card bg-white rounded-2xl shadow-xl border border-[#e6ebf1] overflow-hidden">
+                <div className="p-6 sm:p-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center text-white text-lg`}>
+                        {card.emoji}
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-[#0a2540]">{card.label}</div>
+                        <div className="text-xs text-[#6b7c93]">{card.tagline}</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      {COLLECTION_TYPES.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setActiveCard(i)}
+                          className="h-2 rounded-full transition-all duration-300 cursor-pointer"
+                          style={{
+                            width: i === activeCard ? 24 : 6,
+                            backgroundColor: i === activeCard ? '#635bff' : '#e6ebf1',
+                          }}
+                          aria-label={`Switch to ${COLLECTION_TYPES[i].label}`}
+                        />
+                      ))}
                     </div>
                   </div>
 
-                  <div className="h-2 bg-white/20 rounded-full mb-3 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        width: `${card.pct}%`,
-                        background: meta.accentGradient,
-                      }}
-                    />
+                  <div className="space-y-4 mb-6">
+                    <div className="h-3 bg-[#f6f9fc] rounded w-3/4" />
+                    <div className="h-3 bg-[#f6f9fc] rounded w-1/2" />
+                    <div className="h-3 bg-[#f6f9fc] rounded w-5/6" />
                   </div>
 
-                  <div className="text-center">
-                    <div
-                      className="text-lg font-bold"
-                      style={{ color: meta.accentColor }}
-                    >
-                      {card.raised}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="font-semibold text-[#0a2540]">₦485,000 raised</span>
+                      <span className="text-[#6b7c93]">74%</span>
                     </div>
-                    <div className="text-white/70 text-xs">{card.goal}</div>
+                    <div className="h-2 bg-[#f6f9fc] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full bg-gradient-to-r ${card.gradient} transition-all duration-700`}
+                        style={{ width: `${[74, 64, 47][activeCard]}%` }}
+                      />
+                    </div>
                   </div>
 
-                  <div className="mt-3 pt-3 border-t border-white/20 text-center text-white/70 text-xs">
-                    <span style={{ color: meta.accentColor }}>♥</span>{" "}
-                    {card.supporters}
+                  <div className="flex items-center gap-4 text-sm text-[#6b7c93]">
+                    <div className="flex items-center gap-1.5">
+                      <div className="size-2 rounded-full bg-green-400" />
+                      67 supporters
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="size-2 rounded-full bg-[#635bff]" />
+                      28 days left
+                    </div>
                   </div>
                 </div>
               </div>
@@ -368,95 +169,76 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* ── Three Collection Types ── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Three Ways to Collect
-          </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto mb-12">
-            Pick the type that fits your moment. Each is built and designed
-            specifically for that purpose.
-          </p>
+      <section className="py-20 sm:py-28 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#0a2540] mb-4 tracking-tight">
+              Three ways to collect
+            </h2>
+            <p className="text-lg text-[#6b7c93] max-w-lg mx-auto">
+              Pick the type that fits your moment. Each is purpose-built for that occasion.
+            </p>
+          </div>
+
           <div className="grid md:grid-cols-3 gap-6">
-            {COLLECTION_TYPES.map((type) => {
-              const t = TYPE_CONFIG[type.id];
-              return (
-                <Card
-                  key={type.id}
-                  className="p-6 text-left hover:shadow-md transition-shadow"
-                  style={{
-                    borderColor: t.borderAccent,
-                  }}
+            {COLLECTION_TYPES.map((type) => (
+              <div
+                key={type.id}
+                className="group rounded-2xl border border-[#e6ebf1] bg-white p-8 hover:shadow-lg hover:border-transparent transition-all duration-300"
+              >
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${type.gradient} flex items-center justify-center text-white text-xl mb-5`}>
+                  {type.emoji}
+                </div>
+                <h3 className="text-lg font-bold text-[#0a2540] mb-2">{type.tagline}</h3>
+                <p className="text-sm text-[#6b7c93] mb-6 leading-relaxed">{type.description}</p>
+
+                <ul className="space-y-2 mb-8">
+                  {type.examples.map((ex) => (
+                    <li key={ex} className="text-sm text-[#6b7c93] flex items-center gap-2">
+                      <svg className="size-4 flex-shrink-0" style={{ color: type.accent }} viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      {ex}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href={`/create_collection?type=${type.id}`}
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold transition-colors"
+                  style={{ color: type.accent }}
                 >
-                  <Badge
-                    className="mb-3"
-                    style={{
-                      background: t.bgAccent,
-                      color: t.accentColor,
-                      border: `1px solid ${t.borderAccent}`,
-                    }}
-                  >
-                    {t.emoji} {t.label}
-                  </Badge>
-                  <h3 className="text-lg font-bold text-foreground mb-1">
-                    {type.tagline}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {type.description}
-                  </p>
-                  <div className="mb-4 space-y-1">
-                    {type.examples.map((ex) => (
-                      <div
-                        key={ex}
-                        className="text-xs text-muted-foreground flex items-center gap-2"
-                      >
-                        <span
-                          className="font-bold"
-                          style={{ color: t.accentColor }}
-                        >
-                          →
-                        </span>
-                        {ex}
-                      </div>
-                    ))}
-                  </div>
-                  <Link
-                    href={`/create_collection?type=${type.id}`}
-                    className="inline-flex items-center gap-1 text-sm font-semibold hover:underline"
-                    style={{ color: t.accentColor }}
-                  >
-                    {type.cta} <ArrowRight className="size-3" />
-                  </Link>
-                </Card>
-              );
-            })}
+                  {type.cta} <ArrowRight className="size-3" />
+                </Link>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ── Why Choose CrowdRaise ── */}
-      <section className="py-20 bg-muted">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Why Choose CrowdRaise?
-          </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto mb-12">
-            We&apos;ve rebuilt money collection from the ground up — addressing
-            every pain point that makes people avoid these platforms.
-          </p>
-          <div className="grid md:grid-cols-3 gap-6">
+      {/* ── Features ── */}
+      <section className="py-20 sm:py-28 bg-[#f6f9fc]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#0a2540] mb-4 tracking-tight">
+              Everything you need
+            </h2>
+            <p className="text-lg text-[#6b7c93] max-w-lg mx-auto">
+              No unnecessary features. Just what matters for a great collection experience.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
             {FEATURES.map((f) => {
               const Icon = f.icon;
               return (
-                <Card key={f.title} className="p-8 text-center">
-                  <div className="w-12 h-12 rounded-xl bg-rose-100 text-rose-500 flex items-center justify-center mx-auto mb-4">
-                    <Icon className="size-6" />
+                <div key={f.title} className="text-center">
+                  <div className="w-12 h-12 rounded-xl bg-primary/5 text-primary flex items-center justify-center mx-auto mb-5">
+                    <Icon className="size-5" />
                   </div>
-                  <h3 className="text-lg font-bold text-foreground mb-2">
-                    {f.title}
-                  </h3>
-                  <p className="text-muted-foreground text-sm">{f.desc}</p>
-                </Card>
+                  <h3 className="text-lg font-bold text-[#0a2540] mb-2">{f.title}</h3>
+                  <p className="text-sm text-[#6b7c93] leading-relaxed max-w-xs mx-auto">{f.desc}</p>
+                </div>
               );
             })}
           </div>
@@ -464,55 +246,29 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* ── About ── */}
-      <section className="py-20 bg-white" id="about">
+      <section className="py-20 sm:py-28 bg-white" id="about">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
+          <h2 className="text-3xl sm:text-4xl font-bold text-[#0a2540] mb-6 tracking-tight">
             About CrowdRaise
           </h2>
-          <p className="text-muted-foreground text-lg mb-12">
-            CrowdRaise is a next-generation collection platform built to empower
-            individuals, communities, and organisations across Africa. Whether
-            you want to raise funds for a cause, collect gifts for a
-            celebration, or receive tips for your work — we give you the tools
-            to succeed with no hidden fees and no confusing processes.
+          <p className="text-lg text-[#6b7c93] mb-16 leading-relaxed">
+            CrowdRaise is a next-generation collection platform built to empower individuals, communities, and organisations across Africa. We give you the tools to succeed — with no hidden fees and no confusing processes.
           </p>
-          <div className="grid sm:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-3 gap-8">
             {[
-              {
-                icon: Users,
-                color: "text-cyan-500",
-                bg: "bg-cyan-100",
-                title: "Community Driven",
-                desc: "Built for people, by people. We listen and improve constantly.",
-              },
-              {
-                icon: Shield,
-                color: "text-rose-500",
-                bg: "bg-rose-100",
-                title: "Secure & Transparent",
-                desc: "Your collections and data are protected with industry-leading security.",
-              },
-              {
-                icon: Globe,
-                color: "text-violet-500",
-                bg: "bg-violet-100",
-                title: "For Africa & Beyond",
-                desc: "Designed for the unique needs of African communities, but open to the world.",
-              },
+              { icon: Shield, title: "Secure & transparent", desc: "Your data and collections are protected with industry-leading security.", accent: "text-primary", bg: "bg-primary/5" },
+              { icon: Globe, title: "Community driven", desc: "Built for people, by people. We improve constantly based on feedback.", accent: "text-purple-500", bg: "bg-purple-50" },
+              { icon: Zap, title: "Lightning fast", desc: "Everything loads in an instant. No bloat, no unnecessary complexity.", accent: "text-cyan-500", bg: "bg-cyan-50" },
             ].map((item) => {
               const Icon = item.icon;
               return (
-                <Card key={item.title} className="p-8">
-                  <div
-                    className={`w-12 h-12 rounded-xl ${item.bg} ${item.color} flex items-center justify-center mx-auto mb-4`}
-                  >
-                    <Icon className="size-6" />
+                <div key={item.title}>
+                  <div className={`w-12 h-12 rounded-xl ${item.bg} ${item.accent} flex items-center justify-center mx-auto mb-4`}>
+                    <Icon className="size-5" />
                   </div>
-                  <h3 className="font-bold text-foreground mb-2">
-                    {item.title}
-                  </h3>
-                  <p className="text-muted-foreground text-sm">{item.desc}</p>
-                </Card>
+                  <h3 className="font-bold text-[#0a2540] mb-2">{item.title}</h3>
+                  <p className="text-sm text-[#6b7c93] leading-relaxed">{item.desc}</p>
+                </div>
               );
             })}
           </div>
@@ -520,85 +276,31 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* ── CTA ── */}
-      <section className="py-20 bg-gradient-to-br from-rose-500 via-rose-500 to-cyan-500 text-white">
+      <section className="py-20 sm:py-28 bg-[#0a2540]">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Start Collecting Today
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
+            Ready to get started?
           </h2>
-          <p className="text-white/80 text-lg mb-8">
-            Raise support for a cause, receive gifts for life events, or
-            collect tips for your work — all in one beautiful place.
+          <p className="text-[#8ba0b8] text-lg mb-8 max-w-md mx-auto">
+            Join thousands of Nigerians using CrowdRaise to collect money beautifully.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
             <Link href="/create_collection">
-              <Button
-                size="lg"
-                className="bg-white text-rose-600 hover:bg-white/90 shadow-lg"
-              >
-                Create a Collection <ArrowRight className="size-4" />
+              <Button size="lg" className="w-full sm:w-auto bg-white text-[#0a2540] hover:bg-white/90 shadow-lg">
+                Create your first collection <ArrowRight className="size-4" />
               </Button>
             </Link>
             <Link href="/explore">
               <Button
-                variant="outline"
                 size="lg"
-                className="border-white/30 text-white hover:bg-white/10"
+                className="w-full sm:w-auto bg-transparent border border-[#2d4a6b] text-white hover:bg-[#1a3a5a]"
               >
-                Explore Collections
+                Explore collections
               </Button>
             </Link>
           </div>
-          <p className="text-white/60 text-sm">
-            Join thousands of Nigerians on CrowdRaise — fundraisers, celebrants,
-            and creators.
-          </p>
-        </div>
-      </section>
-
-      {/* ── Contact ── */}
-      <section className="py-20 bg-muted" id="contact">
-        <div className="max-w-xl mx-auto px-4 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
-            Contact Us
-          </h2>
-          <p className="text-muted-foreground mb-8">
-            Have questions, feedback, or want to partner with us? We&apos;d
-            love to hear from you.
-          </p>
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              toast.success("Thank you for reaching out! We'll get back to you soon.");
-            }}
-          >
-            <Input
-              type="text"
-              placeholder="Your Name"
-              required
-              className="h-12"
-            />
-            <Input
-              type="email"
-              placeholder="Your Email"
-              required
-              className="h-12"
-            />
-            <textarea
-              placeholder="Your Message"
-              required
-              rows={4}
-              className="flex w-full rounded-xl border border-input bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
-            />
-            <Button type="submit" size="lg" className="w-full">
-              <Send className="size-4" />
-              Send Message
-            </Button>
-          </form>
         </div>
       </section>
     </div>
   );
-};
-
-export default HomePage;
+}
