@@ -12,6 +12,9 @@ const pageVariants = {
 
 export function AnimatePresenceWrapper({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const isDashboard = pathname?.startsWith('/dashboard');
+
+  if (isDashboard) return <>{children}</>;
 
   return (
     <AnimatePresence mode="wait">
@@ -21,7 +24,7 @@ export function AnimatePresenceWrapper({ children }: { children: ReactNode }) {
         initial="initial"
         animate="animate"
         exit="exit"
-        transition={{ duration: 0.25, ease: 'easeOut' }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
       >
         {children}
       </motion.div>
