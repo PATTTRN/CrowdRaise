@@ -12,8 +12,13 @@ export const contributionService = {
     return response.data;
   },
 
-  getCollectionContributions: async (collectionId: string) => {
-    const response = await api.get<ApiResponse<Contribution[]>>(`/contributions/collection/${collectionId}`);
+  getCollectionContributions: async (collectionId: string, page = 1) => {
+    const response = await api.get<ApiResponse<Contribution[]>>(`/contributions/collection/${collectionId}`, { params: { page, limit: 20 } });
+    return response.data;
+  },
+
+  getAllContributions: async (page = 1) => {
+    const response = await api.get<ApiResponse<Contribution[]>>('/contributions/admin/all', { params: { page, limit: 20 } });
     return response.data;
   },
 

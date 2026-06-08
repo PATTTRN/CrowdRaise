@@ -27,14 +27,13 @@ export const withdrawalService = {
     return response.data;
   },
 
-  getMyWithdrawals: async () => {
-    const response = await api.get<ApiResponse<Withdrawal[]>>('/withdrawals/my');
+  getMyWithdrawals: async (page = 1) => {
+    const response = await api.get<ApiResponse<Withdrawal[]>>('/withdrawals/my', { params: { page, limit: 20 } });
     return response.data;
   },
 
-  adminGetAll: async (status?: string) => {
-    const params = status ? `?status=${status}` : '';
-    const response = await api.get<ApiResponse<Withdrawal[]>>(`/withdrawals/admin/all${params}`);
+  adminGetAll: async (status?: string, page = 1) => {
+    const response = await api.get<ApiResponse<Withdrawal[]>>('/withdrawals/admin/all', { params: { status, page, limit: 20 } });
     return response.data;
   },
 
