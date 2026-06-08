@@ -6,20 +6,20 @@ const Footer: React.FC = () => {
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   return (
-    <footer className="bg-white border-t border-border/50 py-16">
+    <footer className="bg-card py-16 border-t border-border/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-4 gap-10">
           <div className="md:col-span-1">
-            <div className="text-lg font-bold text-[#0a2540] tracking-tight mb-3">
+            <div className="text-lg font-bold text-foreground tracking-tight mb-3">
               CrowdRaise
             </div>
-            <p className="text-sm text-[#6b7c93] leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               The transparent fundraising platform for Africa &amp; beyond.
             </p>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-[#0a2540] mb-4">Quick Links</h4>
+            <h4 className="text-sm font-semibold text-foreground mb-4">Quick Links</h4>
             <ul className="space-y-3">
               {[
                 { href: "/", label: "Home" },
@@ -27,7 +27,7 @@ const Footer: React.FC = () => {
                 { href: "/create_collection", label: "Create Collection" },
               ].map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} onClick={scrollToTop} className="text-sm text-[#6b7c93] hover:text-[#0a2540] transition-colors">
+                  <Link href={link.href} onClick={scrollToTop} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -36,7 +36,7 @@ const Footer: React.FC = () => {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-[#0a2540] mb-4">Collections</h4>
+            <h4 className="text-sm font-semibold text-foreground mb-4">Collections</h4>
             <ul className="space-y-3">
               {[
                 { href: "/create_collection?type=fundraiser", label: "Start a Fundraiser" },
@@ -45,7 +45,7 @@ const Footer: React.FC = () => {
                 { href: "/explore", label: "Browse All" },
               ].map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} onClick={scrollToTop} className="text-sm text-[#6b7c93] hover:text-[#0a2540] transition-colors">
+                  <Link href={link.href} onClick={scrollToTop} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -54,19 +54,19 @@ const Footer: React.FC = () => {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-[#0a2540] mb-4">Contact</h4>
+            <h4 className="text-sm font-semibold text-foreground mb-4">Contact</h4>
             <div className="space-y-3">
-              <a href="mailto:hello@crowdraise.com" className="flex items-center gap-2 text-sm text-[#6b7c93] hover:text-[#0a2540] transition-colors">
+              <a href="mailto:hello@crowdraise.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 hello@crowdraise.com
               </a>
-              <div className="text-sm text-[#6b7c93]">
+              <div className="text-sm text-muted-foreground">
                 Lagos, Nigeria
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-border/50 text-center text-sm text-[#6b7c93]">
+        <div className="mt-12 pt-6 border-t border-border/50 text-center text-sm text-muted-foreground">
           &copy; {new Date().getFullYear()} CrowdRaise. All rights reserved.
         </div>
       </div>

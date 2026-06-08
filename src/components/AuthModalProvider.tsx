@@ -17,5 +17,5 @@ export function AuthModalProvider() {
     return () => window.removeEventListener('open-auth-modal', handler);
   }, []);
 
-  return <AuthModal isOpen={isOpen} onClose={() => setIsOpen(false)} initialMode={initialMode} />;
+  return isOpen ? <AuthModal isOpen={isOpen} onClose={() => setIsOpen(false)} initialMode={initialMode} /> : null;
 }
