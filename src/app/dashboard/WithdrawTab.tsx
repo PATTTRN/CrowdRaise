@@ -106,15 +106,15 @@ export function WithdrawTab() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {[
-          { label: 'Gross Revenue', value: balance.totalGross, icon: TrendingUp, accent: 'text-blue-500', bg: 'bg-blue-100' },
-          { label: 'Platform Fees', value: balance.totalFees, icon: Banknote, accent: 'text-red-500', bg: 'bg-red-100' },
-          { label: 'Net Earnings', value: balance.totalEarned, icon: PiggyBank, accent: 'text-indigo-500', bg: 'bg-indigo-100' },
-          { label: 'Total Paid', value: balance.totalPaid, icon: CheckCircle2, accent: 'text-green-500', bg: 'bg-green-100' },
-          { label: 'Available Now', value: balance.available, icon: Coins, accent: 'text-pink-500', bg: 'bg-pink-100', highlight: true },
+          { label: 'Gross Revenue', value: balance.totalGross, icon: TrendingUp, accent: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Platform Fees', value: balance.totalFees, icon: Banknote, accent: 'text-red-600', bg: 'bg-red-50' },
+          { label: 'Net Earnings', value: balance.totalEarned, icon: PiggyBank, accent: 'text-indigo-600', bg: 'bg-indigo-50' },
+          { label: 'Total Paid', value: balance.totalPaid, icon: CheckCircle2, accent: 'text-green-600', bg: 'bg-green-50' },
+          { label: 'Available Now', value: balance.available, icon: Coins, accent: 'text-pink-600', bg: 'bg-pink-50', highlight: true },
         ].map((item, i) => (
           <Card
             key={i}
-            className={`p-6 ${item.highlight ? 'border-primary/30 shadow-[0_0_20px_rgba(244,63,94,0.08)]' : ''}`}
+            className={`p-6 ${item.highlight ? 'border-primary/30 shadow-sm' : ''}`}
           >
             <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center mb-4`}>
               <item.icon className={`size-5 ${item.accent}`} />
@@ -134,7 +134,7 @@ export function WithdrawTab() {
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="text-muted-foreground text-xs font-medium mb-1.5 block">Select Bank</label>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Select Bank</label>
                 <select
                   value={selectedBankCode}
                   onChange={(e) => {
@@ -146,13 +146,13 @@ export function WithdrawTab() {
                   className="flex h-10 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="">Select a bank</option>
-                  {banks.map((bank) => (
-                    <option key={bank.code} value={bank.code}>{bank.name}</option>
+                  {banks.map((bank, i) => (
+                    <option key={`${bank.code}-${i}`} value={bank.code}>{bank.name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="text-muted-foreground text-xs font-medium mb-1.5 block">Account Number</label>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Account Number</label>
                 <div className="flex gap-2">
                   <Input
                     type="text" maxLength={10} value={accountNumber}
@@ -192,7 +192,7 @@ export function WithdrawTab() {
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="text-muted-foreground text-xs font-medium mb-1.5 block">Amount to Withdraw (₦)</label>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Amount to Withdraw (₦)</label>
                 <Input
                   type="number" value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
