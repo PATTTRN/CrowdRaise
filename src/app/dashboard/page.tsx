@@ -13,7 +13,7 @@ import { statusStyle, statusLabel } from '@/lib/status';
 import type { Collection, Contribution, DashboardSummary } from '@/lib/api-types';
 import {
   Megaphone, Heart, DollarSign, Users, BarChart3, Percent,
-  Play, Plus, Wallet, ArrowUpRight, TrendingUp
+  Play, Plus, Wallet, ArrowUpRight, TrendingUp, PiggyBank
 } from 'lucide-react';
 
 export default function DashboardOverview() {
@@ -57,6 +57,7 @@ export default function DashboardOverview() {
 
   const stats = summary?.stats;
   const balance = summary?.balance;
+  const walletBalance = summary?.walletBalance;
   const recentCollections = summary?.recentCollections || [];
   const recentContributions = summary?.recentContributions || [];
 
@@ -79,32 +80,57 @@ export default function DashboardOverview() {
         </div>
       </div>
 
-      {/* Balance card */}
-      {balance && (
-        <Card className="p-6 bg-gradient-to-br from-primary/5 via-primary/[0.02] to-background ring-primary/10">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-            <div className="flex-1">
-              <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
-                <Wallet className="size-4 text-primary" /> Available Balance
-              </p>
-              <p className="text-3xl sm:text-4xl font-bold tracking-tight">
-                ₦{balance.available.toLocaleString()}
-              </p>
-              <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-sm text-muted-foreground">
-                <span>Gross: ₦{balance.totalGross.toLocaleString()}</span>
-                <span>Fees: -₦{balance.totalFees.toLocaleString()}</span>
-                <span>Withdrawn: -₦{balance.totalWithdrawn.toLocaleString()}</span>
-                <span>Pending: ₦{balance.pendingWithdrawals.toLocaleString()}</span>
+      {/* Balance cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {walletBalance && (
+          <Card className="p-6 bg-gradient-to-br from-emerald-500/10 via-emerald-500/[0.02] to-background ring-emerald-500/10">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
+                  <PiggyBank className="size-4 text-emerald-600" /> Wallet Balance
+                </p>
+                <p className="text-3xl sm:text-4xl font-bold tracking-tight">
+                  ₦{walletBalance.balance.toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Use wallet to make instant contributions
+                </p>
               </div>
+              <Link href="/dashboard/wallet">
+                <Button variant="outline" size="sm" className="shrink-0 border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+                  Fund Wallet <ArrowUpRight className="size-3.5 ml-1" />
+                </Button>
+              </Link>
             </div>
-            <Link href="/dashboard/finance">
-              <Button variant="outline" size="sm" className="shrink-0">
-                View Finance <ArrowUpRight className="size-3.5 ml-1" />
-              </Button>
-            </Link>
-          </div>
-        </Card>
-      )}
+          </Card>
+        )}
+
+        {balance && (
+          <Card className="p-6 bg-gradient-to-br from-primary/5 via-primary/[0.02] to-background ring-primary/10">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
+                  <Wallet className="size-4 text-primary" /> Campaign Revenue
+                </p>
+                <p className="text-3xl sm:text-4xl font-bold tracking-tight">
+                  ₦{balance.available.toLocaleString()}
+                </p>
+                <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-sm text-muted-foreground">
+                  <span>Gross: ₦{balance.totalGross.toLocaleString()}</span>
+                  <span>Fees: -₦{balance.totalFees.toLocaleString()}</span>
+                  <span>Withdrawn: -₦{balance.totalWithdrawn.toLocaleString()}</span>
+                  <span>Pending: ₦{balance.pendingWithdrawals.toLocaleString()}</span>
+                </div>
+              </div>
+              <Link href="/dashboard/finance">
+                <Button variant="outline" size="sm" className="shrink-0">
+                  View Finance <ArrowUpRight className="size-3.5 ml-1" />
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        )}
+      </div>
 
       {/* Stat cards */}
       {stats && (

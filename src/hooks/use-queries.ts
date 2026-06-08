@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collectionService, contributionService, withdrawalService, authService } from '@/services';
+import { collectionService, contributionService, withdrawalService, authService, walletService } from '@/services';
 import { handleApiError } from '@/lib/result';
 import type { CollectionQueryParams } from '@/services/collection.service';
 import type {
@@ -226,5 +226,45 @@ export function useVerifyOtp() {
   return useMutation({
     mutationFn: (otp: string) => authService.verifyOtp(otp),
     onError: (err) => handleApiError(err, 'Verification failed'),
+  });
+}
+
+// ── Wallet ──────────────────────────────────────────────────────────────────────
+
+export function useWallet() {
+  return useQuery({
+    queryKey: ['wallet'],
+    queryFn: () => walletService.getWallet(),
+    select: (data) => data.data,
+    staleTime: DEFAULT_STALE,
+  });
+}
+
+export function useFundWallet() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (amount: number) => walletService.fundWallet(amount),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['wallet'] }),
+    onError: (err) => handleApiError(err, 'Funding failed'),
+  });
+}
+
+export function useWalletTransactions(page = 1) {
+  return useQuery({
+    queryKey: ['wallet', 'transactions', page],
+    queryFn: () => walletService.getTransactions({ page }),
+    staleTime: DEFAULT_STALE,
+  });
+}
+
+export function usePayWithWallet() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { collectionId: string; amount: number; message?: string; isAnonymous?: boolean }) =>
+      walletService.payWithWallet(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['wallet'] });
+    },
+    onError: (err) => handleApiError(err, 'Payment failed'),
   });
 }

@@ -6,7 +6,7 @@ import { useSelectedLayoutSegment } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { notificationService, type NotificationItem } from '@/services';
 import {
-  LayoutDashboard, Megaphone, Heart, Wallet, Settings,
+  LayoutDashboard, Megaphone, Heart, PiggyBank, Wallet, Settings,
   LogOut, Menu, X, ChevronRight, ArrowUpRight, Bell, BellDot
 } from 'lucide-react';
 
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard, segment: null },
   { href: '/dashboard/campaigns', label: 'Campaigns', icon: Megaphone, segment: 'campaigns' },
   { href: '/dashboard/donations', label: 'Donations', icon: Heart, segment: 'donations' },
+  { href: '/dashboard/wallet', label: 'Wallet', icon: PiggyBank, segment: 'wallet' },
   { href: '/dashboard/finance', label: 'Finance', icon: Wallet, segment: 'finance' },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings, segment: 'settings' },
 ];

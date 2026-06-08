@@ -191,6 +191,7 @@ export interface DashboardBalance {
 export interface DashboardSummary {
   stats: DashboardStats
   balance: DashboardBalance
+  walletBalance: { balance: number; currency: string }
   recentCollections: Collection[]
   recentContributions: {
     supporterName?: string
@@ -201,6 +202,31 @@ export interface DashboardSummary {
     createdAt: string
     isAnonymous?: boolean
   }[]
+}
+
+export interface WalletData {
+  _id: string
+  user: string
+  balance: number
+  currency: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface WalletTransaction {
+  _id: string
+  wallet: string
+  user: string
+  type: 'credit' | 'debit'
+  reference: string
+  amount: number
+  balanceBefore: number
+  balanceAfter: number
+  description: string
+  category: 'funding' | 'contribution' | 'withdrawal' | 'refund' | 'adjustment'
+  status: string
+  createdAt: string
 }
 
 export interface Transaction {
