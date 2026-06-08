@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #fafafa;
   --foreground: #0a2540;
   --card: #ffffff;
   --card-foreground: #0a2540;
@@ -9,19 +9,19 @@
   --popover-foreground: #0a2540;
   --primary: #635bff;
   --primary-foreground: #ffffff;
-  --secondary: #f6f9fc;
+  --secondary: #f1f5f9;
   --secondary-foreground: #0a2540;
-  --muted: #f6f9fc;
-  --muted-foreground: #6b7c93;
-  --accent: #f6f9fc;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
   --accent-foreground: #0a2540;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #e6ebf1;
-  --input: #e6ebf1;
+  --border: #d4d8dd;
+  --input: #d4d8dd;
   --ring: #635bff;
-  --radius: 0.5rem;
-  --header-height: 4rem;
+  --radius: 0.75rem;
+  --header-height: 3.5rem;
 }
 
 @theme inline {
@@ -55,11 +55,40 @@ body {
   color: var(--foreground);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 ::selection {
   background: #635bff;
   color: white;
+}
+
+.stripe-grid {
+  background-image:
+    linear-gradient(rgba(99, 91, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 91, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.stripe-hero-gradient {
+  background: linear-gradient(180deg, #0a2540 0%, #1a3a5a 50%, #0a2540 100%);
+}
+
+.stripe-dot-pattern {
+  background-image: radial-gradient(circle, rgba(99, 91, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-dark {
+  background: rgba(10, 37, 64, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .particle {
@@ -157,4 +186,30 @@ summary {
   input, textarea, select {
     min-height: 44px;
   }
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+
+.hero-card-shadow {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.card-hover {
+  transition: all 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
 }

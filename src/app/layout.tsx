@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Header from "./components/Header";
-import Footer from "./components/Footer";
+import LayoutWrapper from "@/components/LayoutWrapper";
+import { QueryProvider } from "@/components/QueryProvider";
 import { AuthModalProvider } from "@/components/AuthModalProvider";
 import { Toaster } from "@/components/ui/sonner";
-import { AnimatePresenceWrapper } from "@/components/AnimatePresenceWrapper";
+import { AuthCookieSync } from "@/components/AuthCookieSync";
+
 import { ErrorBoundaryWrapper } from "@/components/ErrorBoundaryWrapper";
 import { AgentationWrapper } from "@/components/AgentationWrapper";
 
@@ -34,16 +35,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <Header />
-        <main className="pt-[var(--header-height)]">
-          <ErrorBoundaryWrapper>
-            <AnimatePresenceWrapper>{children}</AnimatePresenceWrapper>
-          </ErrorBoundaryWrapper>
-        </main>
-        <Footer />
-        <Toaster position="top-right" richColors />
-        <AuthModalProvider />
-        <AgentationWrapper />
+        <QueryProvider>
+          <LayoutWrapper>
+            <ErrorBoundaryWrapper>
+              {children}
+            </ErrorBoundaryWrapper>
+          </LayoutWrapper>
+          <Toaster position="top-right" richColors />
+          <AuthModalProvider />
+          <AuthCookieSync />
+          <AgentationWrapper />
+        </QueryProvider>
       </body>
     </html>
   );
