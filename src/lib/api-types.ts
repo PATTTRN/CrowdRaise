@@ -176,3 +176,49 @@ export interface LoginPayload {
   email: string
   password: string
 }
+
+// ── Dashboard ──────────────────────────────────────────────────────────────────
+
+export interface DashboardBalance {
+  totalGross: number
+  totalFees: number
+  totalEarned: number
+  totalWithdrawn: number
+  pendingWithdrawals: number
+  available: number
+}
+
+export interface DashboardSummary {
+  stats: DashboardStats
+  balance: DashboardBalance
+  recentCollections: Collection[]
+  recentContributions: {
+    supporterName?: string
+    amount: number
+    platformFee: number
+    netAmount: number
+    collectionTitle: string
+    createdAt: string
+    isAnonymous?: boolean
+  }[]
+}
+
+export interface Transaction {
+  _id: string
+  type: 'contribution' | 'withdrawal'
+  description: string
+  amount: number
+  fee: number
+  netAmount: number
+  status: string
+  date: string
+  meta?: Record<string, unknown>
+}
+
+export interface EarningsBreakdown {
+  _id: { collection: string; collectionTitle: string } | null
+  totalGross: number
+  totalFees: number
+  totalNet: number
+  count: number
+}
