@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { TYPE_CONFIG, type CollectionType } from '@/lib/type-config';
 
 export function FullHeroCarousel({
@@ -44,7 +44,7 @@ export function FullHeroCarousel({
             }}
             aria-hidden={!isActive}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-black/10" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-black/10" />
             <div className="relative h-full flex flex-col justify-center px-7 md:px-14 lg:px-20 w-auto">
               <div
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold mb-5 border mt-9 w-max"
@@ -52,7 +52,6 @@ export function FullHeroCarousel({
                   color: config.color,
                   background: config.bgAccent,
                   borderColor: config.borderAccent,
-                  textShadow: '0 1px 6px #0008',
                 }}
               >
                 {config.emoji} {config.tagline}
@@ -60,7 +59,7 @@ export function FullHeroCarousel({
               <h1 className="font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white drop-shadow-xl mb-2">
                 Create a {config.label}
               </h1>
-              <p className="text-foreground text-lg leading-relaxed font-medium max-w-xl drop-shadow-lg mb-5">
+              <p className="text-white/80 text-lg leading-relaxed font-medium max-w-xl drop-shadow-lg mb-5">
                 {t.desc}
               </p>
             </div>

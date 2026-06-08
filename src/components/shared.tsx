@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 import type { CollectionType } from '@/lib/type-config';
 import { TYPE_CONFIG } from '@/lib/type-config';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -17,7 +18,7 @@ export function StatCard({ icon, label, value, className }: StatCardProps) {
   return (
     <Card className={cn('p-4 sm:p-6', className)}>
       <div className="flex items-center justify-between mb-4">
-        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+        <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center text-primary">
           {icon}
         </div>
         <div className="text-right">
@@ -85,14 +86,14 @@ export function CollectionCard({
           alt={title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
         <Badge
           className="absolute top-3 left-3"
           style={{ background: meta.bgAccent, color: meta.accentColor, border: `1px solid ${meta.borderAccent}` }}
         >
           {meta.emoji} {meta.label}
         </Badge>
-        <div className="absolute top-3 right-3 text-xs text-white/85 bg-black/40 rounded-full px-2.5 py-1 backdrop-blur-sm">
+        <div className="absolute top-3 right-3 text-xs text-white bg-black/40 rounded-full px-2.5 py-1 backdrop-blur-sm">
           {type === 'occasion' && eventDate
             ? `\u{1F4C5} ${new Date(eventDate).toLocaleDateString()}`
             : `${daysLeft || 0}d left`}
@@ -144,36 +145,26 @@ export function CollectionCard({
         </div>
         {showActions ? (
           <div className="flex gap-2">
-            <Link
-              href={`/collection_detail/${_id}`}
-              className="flex-1 px-4 py-2 bg-muted text-foreground text-center rounded-lg text-sm hover:bg-muted/80 transition-colors"
-            >
+            <Link href={`/collection_detail/${_id}`} className="flex-1 inline-flex items-center justify-center h-9 px-3 rounded-lg text-xs font-semibold bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 transition-colors">
               View
             </Link>
-            <Link
-              href={`/edit_collection/${_id}`}
-              className="px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm hover:bg-primary/20 transition-colors"
-            >
+            <Link href={`/edit_collection/${_id}`} className="inline-flex items-center justify-center h-9 px-3 rounded-lg text-xs font-semibold bg-background shadow-sm ring-1 ring-inset ring-input hover:bg-accent transition-colors">
               Edit
             </Link>
             {onDelete && (
               <button
                 onClick={() => onDelete(_id)}
                 disabled={isProcessing === _id}
-                className="px-4 py-2 bg-destructive/10 text-destructive rounded-lg text-sm hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                className="inline-flex items-center justify-center h-9 px-3 rounded-lg text-xs font-semibold bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-colors disabled:opacity-50"
               >
-                {isProcessing === _id ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  'Delete'
-                )}
+                {isProcessing === _id ? <Loader2 className="size-4 animate-spin" /> : 'Delete'}
               </button>
             )}
           </div>
         ) : (
           <Link
             href={`/collection_detail/${_id}`}
-            className="block w-full py-3 rounded-xl font-bold text-sm text-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+            className="block w-full py-3 rounded-xl font-bold text-sm text-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
             style={{ background: meta.accentGradient }}
           >
             {meta.ctaText} {meta.emoji}
